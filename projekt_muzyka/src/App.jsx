@@ -1,109 +1,182 @@
-import React, { useState } from 'react';
-import { Play } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Play, Pause, Menu, Trophy, Flame } from 'lucide-react';
 
-function App() {
+// Importujemy nasze nowe komponenty
+import Sidebar from './components/Sidebar';
+import AuthModal from './components/AuthModal';
+
+const SONGS_DATABASE = [
+  "Thriller - Michael Jackson",
+  "Take On Me - a-ha",
+  "Billie Jean - Michael Jackson",
+  "Sweet Child O' Mine - Guns N' Roses",
+  "Under Pressure - Queen & David Bowie",
+  "Careless Whisper - George Michael"
+];
+
+function GameView() {
   const [inputValue, setInputValue] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState(null);
 
-  // Przykładowe podpowiedzi do wyszukiwarki
-  const suggestions = [
-    "Tytuł pierwszy - Wykonawca",
-    "Tytuł drugi - Wykonawca",
-    "Tytuł trzeci - Wykonawca",
-    "Tytuł czwarty - Wykonawca"
-  ];
+  const [streak] = useState(3);
+  const [category] = useState('Pop lat 80.');
+  const [points] = useState(1250);
+
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (isPlaying && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (isPlaying && timeLeft === 0) {
+      const timeout = setTimeout(() => setIsPlaying(false), 0);
+      return () => clearTimeout(timeout);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying, timeLeft]);
+
+  const togglePlay = () => {
+    if (timeLeft === 0) setTimeLeft(30);
+    setIsPlaying(!isPlaying);
+  };
+
+  const filteredSuggestions = SONGS_DATABASE.filter(song =>
+      song.toLowerCase().includes(inputValue.toLowerCase())
+  );
+
+  const isTimeRunningOut = timeLeft <= 5 && timeLeft > 0;
 
   return (
-      <div className="flex h-screen bg-black text-white font-sans overflow-hidden">
+      <div className="flex h-screen bg-black text-white font-sans overflow-hidden relative">
 
-        {/* LEWA STRONA - GŁÓWNA SEKCJA GRY */}
-        <div className="flex-1 flex flex-col p-10 relative">
+        <div className={`flex-1 flex flex-col p-10 transition-all duration-500 ${isSidebarOpen ? 'mr-80' : 'mr-0'}`}>
 
-          {/* Nagłówek i Statystyki */}
-          <div className="mb-16 text-center">
-            <h1 className="text-7xl font-light tracking-widest mb-8">N A M E</h1>
-            <div className="flex justify-around items-center text-xl mb-4 text-gray-300">
-              <span>streak: <span className="text-white font-bold">3</span></span>
-              <span>category: <span className="text-white font-bold">Pop lat 80.</span></span>
-            </div>
-            <div className="text-5xl font-bold mt-8">
-              <span className="text-gray-400 mr-4">++++</span> 1250 Points
+          {!isSidebarOpen && (
+              <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="fixed top-10 right-10 z-50 p-3 bg-gray-900/80 border border-gray-700 rounded-full hover:border-green-500 hover:text-green-400 transition-all hover:scale-110 shadow-[0_0_15px_rgba(0,0,0,0.5)] backdrop-blur-sm"
+              >
+                <Menu size={32} />
+              </button>
+          )}
+
+          <div className="mb-12 text-center mt-4">
+            <h1 className="text-8xl font-black tracking-tighter mb-6 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+              JAKI TO SYGNAŁ?
+            </h1>
+
+            <div className="flex justify-center gap-12 items-center text-xl text-gray-400 uppercase tracking-widest">
+              <div className="flex items-center gap-2">
+                <Flame className="text-orange-500" size={24} />
+                streak: <span className="text-white font-bold">{streak}</span>
+              </div>
+              <div className="px-4 py-1 border border-gray-800 rounded-full">
+                category: <span className="text-green-500 font-bold">{category}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Trophy className="text-yellow-500" size={24} />
+                points: <span className="text-white font-bold">{points}</span>
+              </div>
             </div>
           </div>
 
-          {/* Sekcja Odtwarzacza */}
-          <div className="flex items-center gap-6 mb-16 px-10">
-            <button className="bg-green-500 rounded-full p-4 hover:bg-green-400 transition-colors shrink-0">
-              <Play fill="white" size={48} />
+          <div className="flex items-center gap-8 mb-16 max-w-4xl mx-auto w-full bg-gray-900/40 p-8 rounded-3xl border border-white/5">
+            <button
+                onClick={togglePlay}
+                className={`rounded-full p-6 transition-all hover:scale-105 shrink-0 ${
+                    isPlaying ? 'bg-yellow-500 hover:bg-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-green-500 hover:bg-green-400 shadow-[0_0_20px_rgba(34,197,94,0.4)]'
+                }`}
+            >
+              {isPlaying ? (
+                  <Pause fill="black" size={40} />
+              ) : (
+                  <Play fill="black" size={40} className="ml-1" />
+              )}
             </button>
 
             <div className="flex-1 flex flex-col">
-              <div className="flex justify-between text-green-500 font-mono mb-2 text-lg">
+              <div className={`flex justify-between font-mono mb-3 text-xl transition-colors ${isTimeRunningOut ? 'text-red-500' : 'text-green-500'}`}>
                 <span>0:00</span>
-                <span>0:13</span>
+                <span className={`font-bold ${isPlaying ? 'animate-pulse' : ''} ${isTimeRunningOut ? 'text-red-500' : 'text-white'}`}>
+                0:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+              </span>
                 <span>0:30</span>
               </div>
-              {/* Pasek postępu */}
-              <div className="w-full h-8 border-2 border-gray-400 rounded-sm relative">
-                {/* Tutaj w przyszłości podepniesz stan (np. width: '43%') */}
-                <div className="absolute top-0 left-0 h-full w-[43%] overflow-hidden">
-                  {/* Imitacja "fali" dźwiękowej / paska ze szkicu */}
-                  <div className="w-full h-full border-b-4 border-green-500 rounded-br-lg"></div>
-                </div>
+              <div className="w-full h-4 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                    className={`h-full transition-all duration-1000 ease-linear ${
+                        isTimeRunningOut
+                            ? 'bg-red-500 shadow-[0_0_15px_rgb(239,68,68)]'
+                            : 'bg-green-500 shadow-[0_0_10px_rgb(34,197,94)]'
+                    }`}
+                    style={{ width: `${(timeLeft / 30) * 100}%` }}
+                ></div>
               </div>
             </div>
           </div>
 
-          {/* Sekcja Inputu Użytkownika */}
-          <div className="w-full max-w-2xl mx-auto flex flex-col">
+          <div className="w-full max-w-2xl mx-auto flex flex-col relative group">
             <input
                 type="text"
-                placeholder="user input..."
+                placeholder="Zgaduj utwór..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                className="bg-transparent border-2 border-gray-400 text-white p-4 text-xl outline-none focus:border-green-500"
+                disabled={!isPlaying && timeLeft === 30}
+                className="bg-gray-900/80 border-2 border-gray-700 text-white p-5 text-2xl rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all z-20 disabled:opacity-50"
             />
-            {/* Przewijana lista podpowiedzi */}
-            <div className="border-2 border-t-0 border-gray-400 max-h-48 overflow-y-auto scrollbar-thin">
-              {suggestions.map((title, index) => (
-                  <div
-                      key={index}
-                      className="p-3 border-b border-gray-700 hover:bg-gray-800 cursor-pointer transition-colors"
-                  >
-                    {title}
-                  </div>
-              ))}
-            </div>
+
+            {inputValue && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border-2 border-gray-700 rounded-2xl max-h-60 overflow-y-auto z-20 shadow-2xl backdrop-blur-xl scrollbar-thin">
+                  {filteredSuggestions.length > 0 ? (
+                      filteredSuggestions.map((title, index) => (
+                          <div
+                              key={index}
+                              onClick={() => {
+                                setInputValue(title);
+                                setIsPlaying(false);
+                              }}
+                              className="p-4 border-b border-gray-800 last:border-0 hover:bg-green-500 hover:text-black cursor-pointer transition-all font-medium text-lg"
+                          >
+                            {title}
+                          </div>
+                      ))
+                  ) : (
+                      <div className="p-4 text-gray-500 italic text-center">Nie znamy tego sygnału...</div>
+                  )}
+                </div>
+            )}
           </div>
         </div>
 
-        {/* PRAWA STRONA - PASEK BOCZNY */}
-        <div className="w-64 border-l border-white flex flex-col">
-          {/* Profil */}
-          <div className="p-6 border-b border-white flex justify-center">
-            <div className="w-24 h-24 rounded-full bg-gray-700 border-2 border-gray-500 overflow-hidden flex items-center justify-center cursor-pointer hover:border-green-500 transition-colors">
-              {/* Miejsce na zdjęcie (kwiatek ze szkicu) */}
-              <img
-                  src="https://api.dicebear.com/7.x/bottts/svg?seed=flower"
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
+        {/* Wstrzykujemy nasze wyciągnięte komponenty i przekazujemy im stany jako "propsy" */}
+        <Sidebar
+            isSidebarOpen={isSidebarOpen}
+            setIsSidebarOpen={setIsSidebarOpen}
+            setActiveModal={setActiveModal}
+        />
 
-          {/* Nawigacja */}
-          <div className="flex-1 p-6 flex flex-col gap-6 text-3xl font-light">
-            <a href="#stats" className="hover:text-green-500 transition-colors">Stats</a>
-            <a href="#friends" className="hover:text-green-500 transition-colors">Friends</a>
-          </div>
-
-          {/* Stopka menu */}
-          <div className="p-6 text-xl hover:text-gray-300 cursor-pointer">
-            About us
-          </div>
-        </div>
+        <AuthModal
+            activeModal={activeModal}
+            setActiveModal={setActiveModal}
+        />
 
       </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+      <Router>
+        <Routes>
+          <Route path="/" element={<GameView />} />
+          <Route path="/stats" element={<div className="p-20 text-5xl font-black text-white italic">STATS <Link to="/" className="text-green-500 block text-xl mt-10">POWRÓT</Link></div>} />
+          <Route path="/friends" element={<div className="p-20 text-5xl font-black text-white italic">FRIENDS <Link to="/" className="text-green-500 block text-xl mt-10">POWRÓT</Link></div>} />
+        </Routes>
+      </Router>
+  );
+}
