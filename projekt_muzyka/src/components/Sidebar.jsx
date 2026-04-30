@@ -17,9 +17,13 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, setActiveModa
             </div>
 
             <div className="p-10 flex flex-col items-center border-b border-white/5">
-                <div className="w-28 h-28 rounded-full bg-black border-4 border-green-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-                    <User size={60} className="m-auto mt-4 text-gray-600" />
-                </div>
+                <Link
+                    to="/profile"
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="w-28 h-28 rounded-full bg-black border-4 border-green-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:border-green-500 hover:scale-105 transition-all flex items-center justify-center group cursor-pointer"
+                >
+                    <User size={60} className="text-gray-600 group-hover:text-green-500 transition-colors" />
+                </Link>
                 <span className="text-xl font-medium text-white">Użytkownik #123</span>
             </div>
 

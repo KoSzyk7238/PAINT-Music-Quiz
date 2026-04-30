@@ -1,3 +1,6 @@
+import Stats from './components/Stats';
+import Friends from './components/Friends';
+import Profile from './components/Profile';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Play, Pause, Menu, Trophy, Flame } from 'lucide-react';
@@ -174,8 +177,10 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/" element={<GameView />} />
-          <Route path="/stats" element={<div className="p-20 text-5xl font-black text-white italic">STATS <Link to="/" className="text-green-500 block text-xl mt-10">POWRÓT</Link></div>} />
-          <Route path="/friends" element={<div className="p-20 text-5xl font-black text-white italic">FRIENDS <Link to="/" className="text-green-500 block text-xl mt-10">POWRÓT</Link></div>} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/stats" element={<Stats />} />
+          {/* Zmień tę linijkę poniżej: */}
+          <Route path="/friends" element={<Friends />} />
         </Routes>
       </Router>
   );
