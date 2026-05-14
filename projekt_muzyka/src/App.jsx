@@ -13,9 +13,13 @@ function GameView() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
 
-  const [streak, setStreak] = useState(0);
-  const [category, setCategory] = useState('Wybierz Quiz');
-  const [points, setPoints] = useState(0);
+  // Globalne statystyki profilu (opcjonalne, nie używane już w HUD gry)
+  const [globalStreak, setGlobalStreak] = useState(0);
+  const [globalPoints, setGlobalPoints] = useState(0);
+
+  // Lokalne statystyki dla obecnej sesji quizu
+  const [sessionStreak, setSessionStreak] = useState(0);
+  const [sessionPoints, setSessionPoints] = useState(0);
 
   const [timeLeft, setTimeLeft] = useState(30);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -45,8 +49,8 @@ function GameView() {
         const res = await fetch('/api/profile/');
         if (res.ok) {
           const data = await res.json();
-          setStreak(data.current_streak);
-          setPoints(data.total_points);
+          setGlobalStreak(data.current_streak);
+          setGlobalPoints(data.total_points);
         }
       } catch (err) {
         console.error(err);
@@ -118,11 +122,12 @@ function GameView() {
     const quizWithShuffled = { ...quiz, questions: limitedQuestions };
 
     setCurrentQuiz(quizWithShuffled);
-    setCategory(quiz.title);
     setCurrentQuestionIndex(0);
     setSessionSummary(null);
     setAudioDebug('');
     setIsSubmitting(false);
+    setSessionStreak(0); // Reset lokalnego streaka
+    setSessionPoints(0); // Reset lokalnych punktów
     try {
       const res = await fetch('/api/sessions/', {
         method: 'POST',
@@ -249,11 +254,11 @@ function GameView() {
         if (res.ok) {
             const data = await res.json();
             if (data.is_correct) {
-                setStreak(prev => prev + 1);
-                setPoints(prev => prev + data.points_awarded);
+                setSessionStreak(prev => prev + 1);
+                setSessionPoints(prev => prev + data.points_awarded);
                 setFeedback({ type: 'success', text: `DOBRZE! +${data.points_awarded} PKT` });
             } else {
-                setStreak(0);
+                setSessionStreak(0);
                 setFeedback({ type: 'error', text: 'ŹLE!' });
             }
 
@@ -351,6 +356,18 @@ function GameView() {
   // W prawdziwej aplikacji polecane mogłyby być sortowane wg ilości rozegrań, tu bierzemy pierwsze 3
   const recommendedQuizzes = quizzes.slice(0, 3);
 
+  // Style dla animacji streak'a
+  const getFlameStyle = (streak) => {
+      if (streak === 0) return "text-gray-600 scale-100";
+      if (streak < 3) return "text-orange-400 scale-110 drop-shadow-[0_0_8px_rgba(251,146,60,0.6)]";
+      if (streak < 5) return "text-orange-500 scale-125 drop-shadow-[0_0_15px_rgba(249,115,22,0.8)] animate-pulse";
+      if (streak < 8) return "text-red-500 scale-150 drop-shadow-[0_0_25px_rgba(239,68,68,1)] animate-pulse";
+      return "text-red-600 scale-[1.7] drop-shadow-[0_0_40px_rgba(220,38,38,1)] animate-bounce";
+  };
+
+  // Pobieramy aktualny gatunek na bieżąco z piosenki, z quizu lub ustawiamy domyślnie 'Mix'
+  const currentCategoryName = question?.song?.genre?.name || currentQuiz?.genre?.name || 'Mix';
+
   return (
       <div className="flex h-screen bg-black text-white font-sans overflow-hidden relative">
 
@@ -367,24 +384,28 @@ function GameView() {
               </button>
           )}
 
-          <div className="mb-12 text-center mt-4">
-            <h1 className="text-8xl font-black tracking-tighter mb-6 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+          <div className="mb-6 text-center mt-4">
+            <h1 className="text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
               JAKI TO SYGNAŁ?
             </h1>
 
-            {/* Pokazujemy statystyki (streak, category, points) tylko podczas gry lub w podsumowaniu */}
-            {(currentQuiz || sessionSummary) && (
-                <div className="flex justify-center gap-12 items-center text-xl text-gray-400 uppercase tracking-widest">
-                  <div className="flex items-center gap-2">
-                    <Flame className="text-orange-500" size={24} />
-                    streak: <span className="text-white font-bold">{streak}</span>
+            {/* Pokazujemy lokalne statystyki TYLKO podczas trwania quizu (nie w podsumowaniu, nie na głownej) */}
+            {(currentQuiz && !sessionSummary) && (
+                <div className="flex justify-center gap-14 items-center text-xl text-gray-400 uppercase tracking-widest mt-8">
+                  <div className="flex items-center gap-4 relative">
+                    <div className={`transition-all duration-300 ${getFlameStyle(sessionStreak)}`}>
+                        <Flame fill="currentColor" size={28} />
+                    </div>
+                    <span>streak:</span>
+                    <span className="text-white font-bold text-3xl">{sessionStreak}</span>
                   </div>
-                  <div className="px-4 py-1 border border-gray-800 rounded-full truncate max-w-xs">
-                    category: <span className="text-green-500 font-bold">{category}</span>
+                  <div className="px-6 py-2 border-2 border-gray-700 bg-gray-900/50 rounded-full truncate max-w-xs shadow-lg">
+                    gatunek: <span className="text-green-500 font-black">{currentCategoryName}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Trophy className="text-yellow-500" size={24} />
-                    points: <span className="text-white font-bold">{points}</span>
+                  <div className="flex items-center gap-3">
+                    <Trophy className="text-yellow-500" fill="currentColor" size={28} />
+                    <span>punkty:</span>
+                    <span className="text-yellow-400 font-black text-4xl drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">{sessionPoints}</span>
                   </div>
                 </div>
             )}
