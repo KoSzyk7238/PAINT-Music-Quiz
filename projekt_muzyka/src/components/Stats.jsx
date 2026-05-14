@@ -1,28 +1,101 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Flame, Trophy, Target, Zap, Music, Crown } from 'lucide-react';
 
 export default function Stats() {
-    // Przykładowe dane do wydmuszki (do podmiany przez backend w przyszłości)
+    const [statsData, setStatsData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('/api/stats/');
+                if (!response.ok) {
+                    throw new Error('Nie udało się pobrać statystyk. Zaloguj się!');
+                }
+                const data = await response.json();
+                setStatsData(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-black text-white font-sans flex items-center justify-center">
+                <span className="text-2xl font-bold">Ładowanie statystyk...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-black text-white font-sans flex flex-col items-center justify-center gap-4">
+                <span className="text-2xl font-bold text-red-500">{error}</span>
+                <Link to="/" className="text-green-500 hover:text-green-400 font-bold uppercase underline">Wróć na stronę główną</Link>
+            </div>
+        );
+    }
+
+    const { summary, recent_games, genre_distribution, decade_distribution } = statsData;
+
     const generalStats = [
-        { label: "Rozegranych gier", value: "2115", color: "border-blue-500", icon: <Music className="text-blue-500 mb-2" size={24}/> },
-        { label: "Łączne punkty", value: "6767", color: "border-yellow-500", icon: <Trophy className="text-yellow-500 mb-2" size={24}/> },
-        { label: "Trafność", value: "67.67%", color: "border-green-500", icon: <Target className="text-green-500 mb-2" size={24}/> },
-        { label: "Najlepsza seria", value: "12", color: "border-orange-500", icon: <Flame className="text-orange-500 mb-2" size={24}/> },
-        { label: "Śr. czas reakcji", value: "6.7s", color: "border-cyan-500", icon: <Zap className="text-cyan-500 mb-2" size={24}/> },
-        { label: "Ulubiony artysta", value: "Skolim", color: "border-purple-500", icon: <Crown className="text-purple-500 mb-2" size={24}/> },
+        { label: "Rozegranych gier", value: summary.games_played, color: "border-blue-500", icon: <Music className="text-blue-500 mb-2" size={24}/> },
+        { label: "Łączne punkty", value: summary.total_points, color: "border-yellow-500", icon: <Trophy className="text-yellow-500 mb-2" size={24}/> },
+        { label: "Trafność", value: `${summary.accuracy_percent}%`, color: "border-green-500", icon: <Target className="text-green-500 mb-2" size={24}/> },
+        { label: "Najlepsza seria", value: summary.best_streak, color: "border-orange-500", icon: <Flame className="text-orange-500 mb-2" size={24}/> },
+        { label: "Śr. czas reakcji", value: `${summary.average_reaction_time}s`, color: "border-cyan-500", icon: <Zap className="text-cyan-500 mb-2" size={24}/> },
+        { label: "Ulubiony artysta", value: summary.favorite_artist || "Brak", color: "border-purple-500", icon: <Crown className="text-purple-500 mb-2" size={24}/> },
     ];
 
-    const recentGames = [
-        { date: "12.04", category: "Pop", points: 450, correct: 8, total: 10, color: "bg-blue-500" },
-        { date: "11.04", category: "Rock", points: 320, correct: 6, total: 10, color: "bg-purple-500" },
-        { date: "10.04", category: "Mix", points: 510, correct: 9, total: 10, color: "bg-green-500" },
-    ];
+    const formatTime = (isoString) => {
+        if (!isoString) return "";
+        const date = new Date(isoString);
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    };
+
+    // Obliczanie wartości dla wykresów na podstawie danych
+    const totalGenres = genre_distribution.reduce((sum, g) => sum + g.count, 0) || 1;
+    const colors = ["#f472b6", "#a78bfa", "#4ade80", "#facc15", "#38bdf8", "#ef4444"];
+    
+    let currentPercentage = 0;
+    const genreStops = genre_distribution.slice(0, 5).map((g, idx) => {
+        const percentage = (g.count / totalGenres) * 100;
+        const start = currentPercentage;
+        currentPercentage += percentage;
+        return `${colors[idx % colors.length]} ${start}% ${currentPercentage}%`;
+    });
+    // Wypełnij resztę dla efektu donut
+    if (currentPercentage < 100) {
+        genreStops.push(`transparent ${currentPercentage}% 100%`);
+    }
+    const genreGradient = genreStops.join(", ");
+
+    const totalDecades = Object.values(decade_distribution).reduce((sum, count) => sum + count, 0) || 1;
+    let currentDecadePercentage = 0;
+    const decadeColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6"];
+    const decadeEntries = Object.entries(decade_distribution).sort((a, b) => b[1] - a[1]);
+    const decadeStops = decadeEntries.slice(0, 5).map(([decade, count], idx) => {
+        const percentage = (count / totalDecades) * 100;
+        const start = currentDecadePercentage;
+        currentDecadePercentage += percentage;
+        return `${decadeColors[idx % decadeColors.length]} ${start}% ${currentDecadePercentage}%`;
+    });
+    if (currentDecadePercentage < 100) {
+        decadeStops.push(`transparent ${currentDecadePercentage}% 100%`);
+    }
+    const decadeGradient = decadeStops.join(", ");
+
 
     return (
         <div className="min-h-screen bg-black text-white font-sans p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
 
-            {/* Przycisk powrotu */}
             <div className="w-full max-w-5xl flex justify-start mb-8 z-10">
                 <Link
                     to="/"
@@ -32,7 +105,6 @@ export default function Stats() {
                 </Link>
             </div>
 
-            {/* Nagłówek */}
             <h1 className="text-6xl font-black tracking-tighter mb-12 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10">
                 Statystyki
             </h1>
@@ -60,26 +132,30 @@ export default function Stats() {
                     <div className="bg-gray-900/40 p-8 rounded-3xl border border-white/5 flex flex-col items-center">
                         <h2 className="text-xl font-black italic uppercase tracking-widest mb-8 text-gray-400 w-full text-left">Gatunki muzyczne</h2>
                         <div className="flex w-full items-center justify-around">
-                            {/* Wykres Donut (zbudowany za pomocą conic-gradient) */}
-                            <div
-                                className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)]"
-                                style={{ background: "conic-gradient(#f472b6 0% 35%, #a78bfa 35% 63%, #4ade80 63% 81%, #facc15 81% 93%, #38bdf8 93% 100%)" }}
-                            >
-                                {/* Ciemny środek (tworzy oponkę) */}
-                                <div className="absolute inset-4 bg-gray-900 rounded-full flex flex-col items-center justify-center">
-                                    <span className="text-2xl font-black">164</span>
-                                    <span className="text-xs text-gray-400">trafień</span>
-                                </div>
-                            </div>
-
-                            {/* Legenda 1 */}
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#f472b6]"></div><span className="w-20 font-bold">Pop</span><span className="text-gray-400">35%</span></div>
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#a78bfa]"></div><span className="w-20 font-bold">Rock</span><span className="text-gray-400">28%</span></div>
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#4ade80]"></div><span className="w-20 font-bold">Metal</span><span className="text-gray-400">18%</span></div>
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#facc15]"></div><span className="w-20 font-bold">Hip-Hop</span><span className="text-gray-400">12%</span></div>
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#38bdf8]"></div><span className="w-20 font-bold">Inne</span><span className="text-gray-400">7%</span></div>
-                            </div>
+                            {genre_distribution.length > 0 ? (
+                                <>
+                                    <div
+                                        className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)]"
+                                        style={{ background: `conic-gradient(${genreGradient})` }}
+                                    >
+                                        <div className="absolute inset-4 bg-gray-900 rounded-full flex flex-col items-center justify-center">
+                                            <span className="text-2xl font-black">{genre_distribution[0]?.count || 0}</span>
+                                            <span className="text-xs text-gray-400">naj. gatunek</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        {genre_distribution.slice(0, 5).map((g, idx) => (
+                                            <div key={idx} className="flex items-center gap-3">
+                                                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colors[idx % colors.length] }}></div>
+                                                <span className="w-20 font-bold truncate" title={g.genre}>{g.genre}</span>
+                                                <span className="text-gray-400">{Math.round((g.count / totalGenres) * 100)}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <span className="text-gray-500">Brak danych</span>
+                            )}
                         </div>
                     </div>
 
@@ -87,23 +163,30 @@ export default function Stats() {
                     <div className="bg-gray-900/40 p-8 rounded-3xl border border-white/5 flex flex-col items-center">
                         <h2 className="text-xl font-black italic uppercase tracking-widest mb-8 text-gray-400 w-full text-left">Trafność dekadami</h2>
                         <div className="flex w-full items-center justify-around">
-                            <div
-                                className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)]"
-                                style={{ background: "conic-gradient(#ef4444 0% 50%, #f97316 50% 75%, #eab308 75% 90%, #22c55e 90% 100%)" }}
-                            >
-                                <div className="absolute inset-4 bg-gray-900 rounded-full flex flex-col items-center justify-center">
-                                    <span className="text-2xl font-black">73%</span>
-                                    <span className="text-xs text-gray-400">średnia</span>
-                                </div>
-                            </div>
-
-                            {/* Legenda 2 */}
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#ef4444]"></div><span className="w-20 font-bold">Lata 80</span><span className="text-gray-400">50%</span></div>
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#f97316]"></div><span className="w-20 font-bold">Lata 90</span><span className="text-gray-400">25%</span></div>
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#eab308]"></div><span className="w-20 font-bold">Lata 00</span><span className="text-gray-400">15%</span></div>
-                                <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-[#22c55e]"></div><span className="w-20 font-bold">Nowe</span><span className="text-gray-400">10%</span></div>
-                            </div>
+                            {decadeEntries.length > 0 ? (
+                                <>
+                                    <div
+                                        className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)]"
+                                        style={{ background: `conic-gradient(${decadeGradient})` }}
+                                    >
+                                        <div className="absolute inset-4 bg-gray-900 rounded-full flex flex-col items-center justify-center">
+                                            <span className="text-2xl font-black">{decadeEntries[0]?.[0] || "-"}</span>
+                                            <span className="text-xs text-gray-400">naj. dekada</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        {decadeEntries.slice(0, 5).map(([decade, count], idx) => (
+                                            <div key={idx} className="flex items-center gap-3">
+                                                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: decadeColors[idx % decadeColors.length] }}></div>
+                                                <span className="w-20 font-bold">{decade}</span>
+                                                <span className="text-gray-400">{Math.round((count / totalDecades) * 100)}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <span className="text-gray-500">Brak danych</span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -112,22 +195,25 @@ export default function Stats() {
                 <div className="bg-gray-900/40 p-8 rounded-3xl border border-white/5 mb-10">
                     <h2 className="text-2xl font-black italic uppercase tracking-widest mb-6 text-gray-400">Ostatnie rozgrywki</h2>
                     <div className="flex flex-col gap-4">
-                        {recentGames.map((game, idx) => (
-                            <div key={idx} className="bg-black/50 p-4 rounded-xl border border-gray-800 flex items-center gap-6">
-                                <span className="text-gray-500 text-sm font-mono">{game.date}</span>
-                                <span className={`font-black uppercase w-16 ${game.color.replace('bg-', 'text-')}`}>{game.category}</span>
-                                <span className="text-yellow-500 font-bold w-20">{game.points} pkt</span>
-                                <span className="text-gray-400 text-sm">{game.correct}/{game.total}</span>
+                        {recent_games.length > 0 ? (
+                            recent_games.map((game, idx) => (
+                                <div key={idx} className="bg-black/50 p-4 rounded-xl border border-gray-800 flex items-center gap-6">
+                                    <span className="text-gray-500 text-sm font-mono">{formatTime(game.played_at)}</span>
+                                    <span className="font-black uppercase w-24 text-blue-500 truncate" title={game.category}>{game.category}</span>
+                                    <span className="text-yellow-500 font-bold w-20">{game.points} pkt</span>
+                                    <span className="text-gray-400 text-sm">{game.correct}/{game.total}</span>
 
-                                {/* Pasek postępu */}
-                                <div className="flex-1 h-3 bg-gray-800 rounded-full overflow-hidden ml-4">
-                                    <div
-                                        className={`h-full rounded-full ${game.color}`}
-                                        style={{ width: `${(game.correct / game.total) * 100}%` }}
-                                    ></div>
+                                    <div className="flex-1 h-3 bg-gray-800 rounded-full overflow-hidden ml-4">
+                                        <div
+                                            className="h-full rounded-full bg-blue-500"
+                                            style={{ width: `${game.total > 0 ? (game.correct / game.total) * 100 : 0}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <span className="text-gray-500">Brak historii gier. Zagraj w quiz!</span>
+                        )}
                     </div>
                 </div>
 

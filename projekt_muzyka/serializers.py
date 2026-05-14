@@ -1,5 +1,40 @@
 from rest_framework import serializers
-from .models import Quiz, Question, Answer, UserScore
+from django.contrib.auth.models import User
+from django.utils.text import slugify
+from .models import Genre, Song, Quiz, Question, Answer, UserScore, GameSession, QuestionAttempt, UserProfile
+import re
+import requests
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ["id", "name", "slug"]
+
+    def create(self, validated_data):
+        if not validated_data.get("slug"):
+            validated_data["slug"] = slugify(validated_data.get("name", ""))
+        return super().create(validated_data)
+
+
+class SongSerializer(serializers.ModelSerializer):
+    genre = GenreSerializer(read_only=True)
+    genre_id = serializers.PrimaryKeyRelatedField(source="genre", queryset=Genre.objects.all(), write_only=True, allow_null=True, required=False)
+
+    class Meta:
+        model = Song
+        fields = [
+            "id",
+            "title",
+            "artist",
+            "genre",
+            "genre_id",
+            "apple_snippet_url",
+            "audio_file",
+            "release_year",
+            "duration_seconds",
+            "created_at",
+        ]
 
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,21 +43,164 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 class QuestionSerializer(serializers.ModelSerializer):
     answers = AnswerSerializer(many=True, read_only=True)
+    song = SongSerializer(read_only=True)
+    song_id = serializers.PrimaryKeyRelatedField(source="song", queryset=Song.objects.all(), write_only=True, allow_null=True, required=False)
+    audio_source_url = serializers.SerializerMethodField()
+    audio_source_file = serializers.SerializerMethodField()
 
     class Meta:
         model = Question
-        fields = ['id', 'question_text', 'audio_url', 'audio_file', 'time_limit', 'points', 'answers']
+        fields = [
+            'id',
+            'quiz',
+            'song',
+            'song_id',
+            'question_text',
+            'audio_url',
+            'audio_file',
+            'audio_source_url',
+            'audio_source_file',
+            'time_limit',
+            'points',
+            'min_points',
+            'answers',
+        ]
+
+    def get_audio_source_url(self, obj):
+        url = obj.audio_url
+        if not url and obj.song and obj.song.apple_snippet_url:
+            url = obj.song.apple_snippet_url
+
+        if url and 'music.apple.com' in url:
+            # Check for ?i=123456 first (Album links)
+            track_id = None
+            match_i = re.search(r'[?&]i=(\d+)', url)
+            if match_i:
+                track_id = match_i.group(1)
+            else:
+                # Fallback to path ID
+                match = re.search(r'/(\d+)(?:\?|$|&)', url)
+                if match:
+                    track_id = match.group(1)
+
+            if track_id:
+                try:
+                    # Extract country code if present (default to US)
+                    country = 'us'
+                    country_match = re.search(r'music\.apple\.com/([a-z]{2})/', url)
+                    if country_match:
+                        country = country_match.group(1)
+                        
+                    resp = requests.get(f"https://itunes.apple.com/lookup?id={track_id}&country={country}", timeout=3)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get('results') and len(data['results']) > 0:
+                            preview_url = data['results'][0].get('previewUrl')
+                            if preview_url:
+                                if not obj.audio_url and obj.song and obj.song.apple_snippet_url == url:
+                                    obj.song.apple_snippet_url = preview_url
+                                    obj.song.save(update_fields=['apple_snippet_url'])
+                                elif obj.audio_url == url:
+                                    obj.audio_url = preview_url
+                                    obj.save(update_fields=['audio_url'])
+                                return preview_url
+                except Exception as e:
+                    print(f"Error fetching Apple preview: {e}")
+        return url
+
+    def get_audio_source_file(self, obj):
+        file_obj = obj.audio_file or (obj.song.audio_file if obj.song else None)
+        if not file_obj:
+            return None
+        try:
+            return file_obj.url
+        except ValueError:
+            return None
 
 class QuizSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)
+    genre = GenreSerializer(read_only=True)
+    genre_id = serializers.PrimaryKeyRelatedField(source="genre", queryset=Genre.objects.all(), write_only=True, allow_null=True, required=False)
 
     class Meta:
         model = Quiz
-        fields = ['id', 'title', 'description', 'cover_image', 'difficulty', 'created_at', 'questions']
+        fields = ['id', 'title', 'description', 'cover_image', 'genre', 'genre_id', 'difficulty', 'num_questions_to_ask', 'created_at', 'questions']
+
+
+class QuestionAttemptSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuestionAttempt
+        fields = [
+            "id",
+            "session",
+            "question",
+            "selected_answer",
+            "answer_text",
+            "is_correct",
+            "time_taken_seconds",
+            "points_awarded",
+            "created_at",
+        ]
+
+
+class GameSessionSerializer(serializers.ModelSerializer):
+    attempts = QuestionAttemptSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = GameSession
+        fields = [
+            "id",
+            "user",
+            "quiz",
+            "started_at",
+            "finished_at",
+            "total_points",
+            "correct_count",
+            "total_questions",
+            "total_time_seconds",
+            "average_time_seconds",
+            "attempts",
+        ]
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source="user.username")
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            "user",
+            "display_name",
+            "avatar",
+            "current_streak",
+            "best_streak",
+            "total_points",
+            "games_played",
+            "correct_answers",
+            "total_answers",
+            "total_time_seconds",
+        ]
+        read_only_fields = [
+            "current_streak",
+            "best_streak",
+            "total_points",
+            "games_played",
+            "correct_answers",
+            "total_answers",
+            "total_time_seconds",
+        ]
+
+
+class UserPublicSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "profile"]
 
 class UserScoreSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
 
     class Meta:
         model = UserScore
-        fields = ['id', 'user', 'quiz', 'score', 'played_at']
+        fields = ['id', 'user', 'quiz', 'score', 'correct_count', 'total_questions', 'average_time_seconds', 'played_at']
