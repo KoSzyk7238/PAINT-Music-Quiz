@@ -64,6 +64,8 @@ function GameView() {
   const [showQuitConfirmation, setShowQuitConfirmation] = useState(false);
   const [wasPlayingBeforeQuitConfirm, setWasPlayingBeforeQuitConfirm] = useState(false);
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   const audioRef = useRef(null);
   const nextQuestionTimeoutRef = useRef(null);
 
@@ -75,9 +77,13 @@ function GameView() {
           const data = await res.json();
           setGlobalStreak(data.current_streak);
           setGlobalPoints(data.total_points);
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
         }
       } catch (err) {
         console.error(err);
+        setIsLoggedIn(false);
       }
     };
 
@@ -424,13 +430,6 @@ function GameView() {
         if (feedback) {
           e.preventDefault();
           proceedToNextStep();
-        } else if (currentQuiz && sessionId && !sessionSummary) {
-          const activeEl = document.activeElement;
-          const isInputFocused = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
-          if (!isInputFocused && !isPlaying) {
-            e.preventDefault();
-            togglePlay();
-          }
         }
       } else if (e.key === ' ') {
         if (currentQuiz && sessionId && !sessionSummary && !feedback) {
@@ -485,9 +484,6 @@ function GameView() {
               e.preventDefault();
               setInputValue(filteredSuggestions[activeSuggestionIndex].title);
               setActiveSuggestionIndex(-1);
-          } else if (inputValue.trim() === '' && !isPlaying) {
-              e.preventDefault();
-              togglePlay();
           } else {
               handleAnswerSubmit(inputValue);
           }
@@ -558,6 +554,9 @@ function GameView() {
              <SummaryView 
                 sessionSummary={sessionSummary} 
                 currentQuiz={currentQuiz} 
+                isLoggedIn={isLoggedIn}
+                onLoginClick={() => setActiveModal('login')}
+                onRegisterClick={() => setActiveModal('register')}
                 onFinish={() => {
                     setSessionSummary(null);
                     setCurrentQuiz(null);

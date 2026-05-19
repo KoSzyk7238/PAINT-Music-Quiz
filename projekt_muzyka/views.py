@@ -377,19 +377,78 @@ class GameSessionFinish(APIView):
 
 class LeaderboardView(APIView):
     def get(self, request, *args, **kwargs):
-        limit = int(request.query_params.get("limit", 20))
-        profiles = UserProfile.objects.select_related("user").order_by("-total_points", "-best_streak")[:limit]
-        data = []
-        for idx, profile in enumerate(profiles, start=1):
-            data.append({
-                "rank": idx,
-                "username": profile.user.username,
-                "display_name": profile.display_name or profile.user.username,
-                "points": profile.total_points,
-                "streak": profile.current_streak,
-                "avatar": profile.avatar.url if profile.avatar else None,
-            })
-        return Response(data)
+        limit = int(request.query_params.get("limit", 50))
+        leaderboard_type = request.query_params.get("type", "global")
+        
+        if leaderboard_type == "quiz":
+            quiz_id = request.query_params.get("quiz_id")
+            if not quiz_id:
+                return Response({"error": "Parametr quiz_id jest wymagany dla rankingu quizu."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Fetch all user scores for this quiz for registered users, sorted by score desc, then by average time asc
+            scores = UserScore.objects.filter(quiz_id=quiz_id, user__isnull=False).select_related('user', 'user__profile').order_by('-score', 'average_time_seconds')
+            
+            # Deduplicate by user to keep their highest score
+            seen_users = set()
+            deduped_scores = []
+            for s in scores:
+                if s.user_id not in seen_users:
+                    seen_users.add(s.user_id)
+                    deduped_scores.append(s)
+            
+            # Slice to limit
+            deduped_scores = deduped_scores[:limit]
+            
+            data = []
+            for idx, s in enumerate(deduped_scores, start=1):
+                data.append({
+                    "rank": idx,
+                    "username": s.user.username,
+                    "display_name": s.user.profile.display_name or s.user.username,
+                    "points": s.score,
+                    "correct_count": s.correct_count,
+                    "total_questions": s.total_questions,
+                    "average_time_seconds": round(s.average_time_seconds, 2),
+                    "avatar": s.user.profile.avatar.url if s.user.profile.avatar else None,
+                })
+            return Response(data)
+            
+        else:
+            # Global leaderboard
+            sort_by = request.query_params.get("sort", "points")
+            profiles = UserProfile.objects.select_related("user").all()
+            
+            # Convert to list of dictionaries with calculated accuracy
+            profile_list = []
+            for p in profiles:
+                acc = (p.correct_answers / p.total_answers * 100) if p.total_answers else 0
+                profile_list.append({
+                    "username": p.user.username,
+                    "display_name": p.display_name or p.user.username,
+                    "points": p.total_points,
+                    "streak": p.best_streak,
+                    "current_streak": p.current_streak,
+                    "games_played": p.games_played,
+                    "accuracy": round(acc, 1),
+                    "avatar": p.avatar.url if p.avatar else None,
+                })
+            
+            # Sort list in Python
+            if sort_by == "streak":
+                profile_list.sort(key=lambda x: (-x["streak"], -x["points"]))
+            elif sort_by == "accuracy":
+                profile_list.sort(key=lambda x: (-x["accuracy"], -x["points"]))
+            elif sort_by == "games":
+                profile_list.sort(key=lambda x: (-x["games_played"], -x["points"]))
+            else: # points
+                profile_list.sort(key=lambda x: (-x["points"], -x["streak"]))
+                
+            # Slice and assign ranks
+            sliced_profiles = profile_list[:limit]
+            for idx, p in enumerate(sliced_profiles, start=1):
+                p["rank"] = idx
+                
+            return Response(sliced_profiles)
 
 
 class StatsView(APIView):

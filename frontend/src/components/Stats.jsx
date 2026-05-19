@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Flame, Trophy, Target, Zap, Music, Crown } from 'lucide-react';
+import AuthModal from './AuthModal';
 
 export default function Stats() {
     const [statsData, setStatsData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [activeModal, setActiveModal] = useState(null);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -36,9 +38,47 @@ export default function Stats() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-black text-white font-sans flex flex-col items-center justify-center gap-4">
-                <span className="text-2xl font-bold text-red-500">{error}</span>
-                <Link to="/" className="text-green-500 hover:text-green-400 font-bold uppercase underline">Wróć na stronę główną</Link>
+            <div className="min-h-screen bg-black text-white font-sans flex flex-col items-center justify-center p-6 relative overflow-hidden">
+                {/* Back button */}
+                <div className="w-full max-w-md flex justify-start mb-8 z-10">
+                    <Link
+                        to="/"
+                        className="flex items-center gap-3 text-green-500 hover:text-green-400 hover:-translate-x-2 transition-all font-bold uppercase tracking-widest"
+                    >
+                        <ArrowLeft size={28} /> Powrót
+                    </Link>
+                </div>
+
+                <div className="bg-gray-900/60 border border-white/10 p-10 rounded-[32px] w-full max-w-md flex flex-col items-center text-center shadow-[0_0_50px_rgba(34,197,94,0.1)] backdrop-blur-md z-10 animate-in fade-in slide-in-from-bottom-6 duration-500">
+                    <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mb-6 border border-green-500/30">
+                        <Crown className="text-green-500" size={40} />
+                    </div>
+                    <h3 className="text-3xl font-black text-white uppercase italic tracking-tight mb-4">
+                        Dostęp tylko dla zalogowanych
+                    </h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-8 font-medium">
+                        Zaloguj się lub utwórz nowe konto, aby śledzić swoje statystyki, historię rozgrywek i rywalizować ze znajomymi!
+                    </p>
+                    <div className="flex flex-col gap-4 w-full">
+                        <button 
+                            onClick={() => setActiveModal('login')}
+                            className="w-full py-4 bg-green-500 text-black font-black uppercase tracking-wider rounded-xl hover:bg-green-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_10px_20px_rgba(34,197,94,0.2)]"
+                        >
+                            Zaloguj się
+                        </button>
+                        <button 
+                            onClick={() => setActiveModal('register')}
+                            className="w-full py-4 bg-transparent border-2 border-gray-700 text-white font-bold uppercase tracking-wider rounded-xl hover:border-green-500 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            Utwórz konto
+                        </button>
+                    </div>
+                </div>
+
+                <AuthModal
+                    activeModal={activeModal}
+                    setActiveModal={setActiveModal}
+                />
             </div>
         );
     }
