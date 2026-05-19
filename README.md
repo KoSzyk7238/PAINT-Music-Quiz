@@ -83,18 +83,31 @@ Projekt wymaga pliku `.env` w katalogu głównym projektu do poprawnej konfigura
    cd C:\Sciezka\Do\Projektu\PAINT-Music-Quiz
    ```
 2. Uruchom aplikację za pomocą Docker Compose:
-   ```cmd
-   docker-compose up --build
-   ```
+   *   **Standardowe uruchomienie (w okienku terminala)**:
+       ```cmd
+       docker-compose up --build
+       ```
+       *Uwaga: Flaga `--build` jest potrzebna tylko przy pierwszym uruchomieniu lub po zmianie kodu. Przy kolejnych uruchomieniach wystarczy wpisać `docker-compose up`.*
+       
+       **Ważne:** Po uruchomieniu tej komendy terminal musi pozostać otwarty! Zamknięcie terminala lub przerwanie procesu spowoduje wyłączenie serwerów (kontenery zakończą działanie z kodem 143/137).
+   *   **Uruchomienie w tle (tzw. tryb detached)**:
+       Jeśli chcesz, aby serwery działały w tle i nie blokowały okna konsoli, wpisz:
+       ```cmd
+       docker-compose up -d
+       ```
 3. Docker automatycznie pobierze obrazy, zainstaluje wszystkie zależności, uruchomi bazę MariaDB, wykona migracje oraz pobierze na żywo utwory z Apple Music.
-4. Gdy w logach pojawi się informacja o poprawnym wystartowaniu serwerów, możesz otworzyć przeglądarkę i zacząć korzystać z quizu!
+4. Gdy w logach pojawi się informacja o poprawnym wystartowaniu serwerów (np. `VITE ready`), otwórz przeglądarkę i przejdź na stronę gry.
 
 ---
 
 ## 4. Wyłączanie i Resetowanie Aplikacji
 
-*   **Zatrzymanie działania**: Aby wyłączyć działające serwery, naciśnij kombinację klawiszy `Ctrl + C` w oknie terminala, w którym uruchomiony jest Docker.
-*   **Całkowity reset bazy danych i kontenerów**: Jeśli chcesz wyczyścić bazę danych i pobrać wszystko na nowo, wpisz w folderze projektu:
+*   **Zatrzymanie działania (jeśli uruchomiono w okienku terminala)**: Naciśnij kombinację klawiszy `Ctrl + C` w oknie terminala, w którym działa Docker Compose.
+*   **Zatrzymanie działania (jeśli uruchomiono w tle `-d`)**: Wpisz w terminalu w folderze projektu:
+    ```cmd
+    docker-compose stop
+    ```
+*   **Całkowity reset bazy danych i kontenerów**: Jeśli chcesz zatrzymać kontenery i całkowicie usunąć całą zawartość bazy danych (np. w celu ponownego pobrania piosenek/seedowania), wpisz:
     ```cmd
     docker-compose down -v
     ```
