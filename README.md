@@ -1,79 +1,113 @@
 # PAINT-Music-Quiz
 
-Projekt składa się z backendu napisanego w Pythonie (Django), frontendu opartego na Node.js (Vite/React) oraz bazy danych MariaDB. Całość jest konteneryzowana i zarządzana przy użyciu narzędzia Docker Compose, co ułatwia uruchomienie całego środowiska.
+Aplikacja to nowoczesny quiz muzyczny, w którym gracze zgadują tytuły piosenek lub wykonawców na podstawie krótkich (np. 15-sekundowych) fragmentów audio. Projekt składa się z backendu w języku Python (Django REST Framework), nowoczesnego frontendu napisanego w React (zbudowanego przy użyciu Vite i stylizowanego za pomocą Vanilla CSS) oraz bazy danych MariaDB. Całość jest w pełni skonteneryzowana za pomocą Docker Compose.
 
-Poniższa instrukcja krok po kroku opisuje, jak zainstalować niezbędne narzędzia (WSL 2 i Docker Desktop) w systemie Windows, a następnie uruchomić aplikację.
+Poniższa instrukcja krok po kroku opisuje domyślną zawartość aplikacji oraz wyjaśnia, **jak zainstalować od zera WSL2 oraz Docker Desktop w systemie Windows**, a następnie uruchomić aplikację za pomocą jednego polecenia.
 
-## 1. Wymagania wstępne (Instalacja WSL 2 i Dockera na Windows)
+---
 
-Zanim uruchomisz aplikację na systemie Windows, musisz przygotować środowisko, instalując **WSL 2** (Windows Subsystem for Linux) oraz **Docker Desktop**.
+## Spis Treści
+1. [Domyślne Dane i Zawartość](#1-domyślne-dane-i-zawartość)
+2. [Instalacja WSL 2 i Docker Desktop na Windows (Od Podstaw)](#2-instalacja-wsl-2-i-docker-desktop-na-windows-od-podstaw)
+3. [Uruchamianie Projektu Krok po Kroku](#3-uruchamianie-projektu-krok-po-kroku)
+4. [Wyłączanie i Resetowanie Aplikacji](#4-wyłączanie-i-resetowanie-aplikacji)
+5. [Tabela Portów i Adresów](#5-tabela-portów-i-adresów)
 
-### Krok 1: Instalacja WSL 2
+---
+
+## 1. Domyślne Dane i Zawartość
+
+Podczas pierwszego uruchomienia migracje oraz skrypt seedujący automatycznie konfigurują bazę danych:
+
+*   **Domyślne konto administratora (Django Admin)**:
+    *   **Login**: `admin`
+    *   **Hasło**: `admin`
+*   **Domyślnie zaimportowane quizy**:
+    W bazie danych automatycznie znajdziesz 3 gotowe, pełne quizy utworzone na podstawie oficjalnych playlist Apple Music (pobierane są próbki utworów 30s bezpośrednio z iTunes API):
+    1.  **Quebonafide — niezbędnik** (33 piosenki)
+    2.  **Taco Hemingway — niezbędnik** (23 piosenki)
+    3.  **Rap Life** (101 piosenek)
+
+Domyślny limit czasu odtwarzania w quizach wynosi **15 sekund** (z 2-sekundowym żółtym "bezpiecznym obszarem" na początku, podczas którego gracz nie traci punktów). W ustawieniach każdego quizu w panelu admina czas ten można zmienić w przedziale od 0 do 30 sekund.
+
+---
+
+## 2. Instalacja WSL 2 i Docker Desktop na Windows (Od Podstaw)
+
+Zanim uruchomisz aplikację, musisz przygotować środowisko, instalując **WSL 2** (Windows Subsystem for Linux) oraz **Docker Desktop**. Jest to wymagane, ponieważ aplikacja działa w kontenerach.
+
+### Krok 1: Instalacja WSL 2 (Windows Subsystem for Linux)
 1. Otwórz menu Start, wyszukaj **PowerShell**, kliknij na niego prawym przyciskiem myszy i wybierz **Uruchom jako administrator**.
 2. Wpisz poniższe polecenie i naciśnij Enter:
-   ```bash
+   ```powershell
    wsl --install
    ```
-3. Poczekaj na zakończenie procesu. To polecenie automatycznie włączy wymagane funkcje systemu, zainstaluje WSL 2 i domyślną dystrybucję Linuksa (zazwyczaj Ubuntu).
-4. **Uruchom ponownie komputer**. Po restarcie może otworzyć się okno terminala w celu dokończenia instalacji Ubuntu (utworzenie nazwy użytkownika i hasła). Możesz je wypełnić, chociaż sam Docker poradzi sobie bez ręcznej konfiguracji dystrybucji.
-
-*Jeśli napotkasz problemy z `wsl --install`, upewnij się, że masz zaktualizowany system Windows 10/11.*
+3. Poczekaj na zakończenie procesu. To polecenie automatycznie włączy wymagane funkcje systemu Windows, zainstaluje architekturę WSL 2 oraz pobierze domyślną dystrybucję Linuksa (Ubuntu).
+4. **Uruchom ponownie komputer**. Po restarcie może otworzyć się okno terminala w celu dokończenia konfiguracji Ubuntu (poprosi o podanie nowej nazwy użytkownika i hasła – możesz podać dowolne, zapamiętaj je).
 
 ### Krok 2: Instalacja Docker Desktop
-1. Wejdź na oficjalną stronę Dockera: [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/) i pobierz wersję dla systemu **Windows**.
+1. Wejdź na oficjalną stronę Dockera: [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) i pobierz wersję dla systemu **Windows**.
 2. Uruchom pobrany instalator (`Docker Desktop Installer.exe`).
-3. Podczas instalacji upewnij się, że opcja **Use WSL 2 instead of Hyper-V** (lub podobna odnosząca się do WSL 2) jest **zaznaczona**.
-4. Po zakończeniu instalacji **uruchom ponownie komputer** (jeśli instalator o to poprosi).
-5. Uruchom aplikację **Docker Desktop** (najlepiej z menu Start) i zaakceptuj warunki licencji. 
-6. (Opcjonalnie) Docker może poprosić o zalogowanie się, ale w większości przypadków możesz używać go bez konta, wybierając opcję "Continue without signing in". Po uruchomieniu ikona Dockera (wieloryb) powinna pojawić się w zasobniku systemowym (obok zegara).
+3. Podczas instalacji upewnij się, że opcja **Use WSL 2 instead of Hyper-V** (Użyj WSL 2 zamiast Hyper-V) jest **zaznaczona**.
+4. Po zakończeniu instalacji kliknij **Close and restart** (Zamknij i uruchom ponownie komputer).
+5. Po restarcie komputera uruchom aplikację **Docker Desktop** (najlepiej z menu Start) i zaakceptuj warunki licencji. Możesz pominąć logowanie, wybierając opcję "Continue without signing in".
+6. Upewnij się, że ikona wieloryba w lewym dolnym rogu programu Docker Desktop świeci się na zielono (oznacza to, że silnik Dockera działa poprawnie).
 
-Upewnij się w **ustawieniach Docker Desktop (ikona zębatki)** -> **General**, że pole **Use the WSL 2 based engine** jest zaznaczone.
+---
 
-## 2. Przygotowanie konfiguracji aplikacji
+## 3. Uruchamianie Projektu Krok po Kroku
 
-Projekt wymaga pliku `.env`, który zawiera zmienne środowiskowe, takie jak hasła do bazy danych. Z racji, że z reguły nie trzyma się haseł w repozytorium, musisz ten plik utworzyć samodzielnie.
+Gdy masz już zainstalowanego i uruchomionego Dockera:
 
-1. W głównym folderze projektu (tam gdzie znajduje się plik `docker-compose.yml`) utwórz nowy plik o nazwie `.env`.
-2. Otwórz plik w dowolnym edytorze tekstowym (np. Notatnik, Visual Studio Code) i wklej do niego następującą podstawową konfigurację:
+### Krok 1: Przygotowanie pliku `.env`
+Projekt wymaga pliku `.env` w katalogu głównym projektu do poprawnej konfiguracji bazy danych w kontenerach.
+1. W głównym folderze projektu (tam gdzie znajduje się plik `docker-compose.yml`) utwórz nowy plik tekstowy o nazwie `.env` (upewnij się, że nie ma rozszerzenia `.txt` na końcu).
+2. Otwórz plik w Notatniku lub innym edytorze kodu i wklej do niego poniższą konfigurację:
+   ```env
+   DB_NAME=paint_music_quiz
+   DB_USER=pmq_user
+   DB_PASSWORD=pmq_password
+   DB_HOST=db
+   DB_PORT=3306
 
-```env
-# Plik .env w katalogu głównym projektu
-MARIADB_ROOT_PASSWORD=mojetajnehaslo
-MARIADB_DATABASE=music_quiz_db
-MARIADB_USER=quiz_user
-MARIADB_PASSWORD=quiz_password
-```
-*(Zmienne dopasuj w zależności od tego, czego wymaga backend w pliku settings.py. Pamiętaj, aby wartości tu ustalone pokrywały się z wymaganiami bazy i backendu).*
+   MARIADB_ROOT_PASSWORD=devroot
+   MARIADB_DATABASE=paint_music_quiz
+   MARIADB_USER=pmq_user
+   MARIADB_PASSWORD=pmq_password
+   ```
+3. Zapisz plik.
 
-## 3. Uruchamianie projektu
-
-Gdy masz już uruchomionego Dockera i przygotowany plik `.env`, uruchomienie projektu sprowadza się do wykonania jednego polecenia.
-
-1. Otwórz terminal (najlepiej wbudowany terminal w Twoim IDE, np. Visual Studio Code, Android Studio albo PowerShell) i przejdź do folderu z głównym katalogiem projektu.
-2. Wpisz komendę:
-   ```bash
+### Krok 2: Uruchomienie kontenerów
+1. Otwórz wiersz poleceń Windows (`cmd` lub `PowerShell`) i przejdź do głównego folderu projektu, np.:
+   ```cmd
+   cd C:\Sciezka\Do\Projektu\PAINT-Music-Quiz
+   ```
+2. Uruchom aplikację za pomocą Docker Compose:
+   ```cmd
    docker-compose up --build
    ```
-   *(Flaga `--build` spowoduje, że obrazy kontenerów zbudują się na nowo, co jest wymagane przy pierwszym uruchomieniu)*
-3. Docker zacznie pobierać niezbędne obrazy, tworzyć kontenery i instalować pakiety wewnątrz nich. Może to potrwać kilka minut.
-4. Po zakończeniu budowy logi powinny przestać gwałtownie pędzić, a w terminalu powinieneś zobaczyć m.in. informację o uruchomionym serwerze z Django oraz frontendzie.
+3. Docker automatycznie pobierze obrazy, zainstaluje wszystkie zależności, uruchomi bazę MariaDB, wykona migracje oraz pobierze na żywo utwory z Apple Music.
+4. Gdy w logach pojawi się informacja o poprawnym wystartowaniu serwerów, możesz otworzyć przeglądarkę i zacząć korzystać z quizu!
 
-### Adresy po uruchomieniu:
-- **Frontend (Aplikacja użytkownika):** [http://localhost:5173](http://localhost:5173)
-- **Backend (API):** [http://localhost:8000](http://localhost:8000)
+---
 
-## 4. Wyłączanie projektu
+## 4. Wyłączanie i Resetowanie Aplikacji
 
-Aby zatrzymać aplikację:
-1. W terminalu, w którym działa serwer, wciśnij kombinację klawiszy `Ctrl + C`. 
-2. Kontenery zostaną zatrzymane, jednakże baza danych (oraz jej zawartość) pozostaną zachowane na dysku.
+*   **Zatrzymanie działania**: Aby wyłączyć działające serwery, naciśnij kombinację klawiszy `Ctrl + C` w oknie terminala, w którym uruchomiony jest Docker.
+*   **Całkowity reset bazy danych i kontenerów**: Jeśli chcesz wyczyścić bazę danych i pobrać wszystko na nowo, wpisz w folderze projektu:
+    ```cmd
+    docker-compose down -v
+    ```
 
-Jeżeli z jakiegoś powodu zechcesz **całkowicie zresetować kontenery oraz usunąć bazę danych**, wpisz:
-```bash
-docker-compose down -v
-```
+---
 
-## 5. Rozwiązywanie problemów
+## 5. Tabela Portów i Adresów
 
-- **Problem z portami:** Jeżeli otrzymasz błąd, że "port is already allocated", oznacza to, że jakaś inna aplikacja na Twoim komputerze używa już portów `8000`, `5173` lub `3306`. Musisz je zwolnić.
-- **Problem z prawami do Dockera na Windows:** Pamiętaj, by Docker Desktop był stale włączony podczas korzystania z `docker-compose`. Jeśli dostajesz błąd typu *Docker daemon is not running*, upewnij się, że aplikacja Docker Desktop działa w tle.
+Po uruchomieniu aplikacja działa pod następującymi adresami:
+
+| Element Aplikacji | Adres URL | Port | Opis |
+| :--- | :--- | :--- | :--- |
+| **Aplikacja Gracza (Frontend)** | [http://localhost:5173](http://localhost:5173) | `5173` | Główny interfejs gry w przeglądarce |
+| **Panel Administratora (Admin)** | [http://localhost:8000/admin/](http://localhost:8000/admin/) | `8000` | Panel Django (login: **`admin`**, hasło: **`admin`**) |
+| **API Backend (Interfejs)** | [http://localhost:8000/api/](http://localhost:8000/api/) | `8000` | Punkty końcowe API REST |
+| **Baza danych MariaDB** | `localhost` | `3306` | Dostęp do bazy (użytkownik: `pmq_user`, hasło: `pmq_password`) |
