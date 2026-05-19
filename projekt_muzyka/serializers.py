@@ -103,8 +103,13 @@ class QuizSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'description', 'cover_image', 'genre', 'genre_id', 'difficulty', 'num_questions_to_ask', 'created_at', 'questions', 'stats']
 
     def get_stats(self, obj):
-        sessions = obj.sessions.filter(finished_at__isnull=False)
-        total_plays = sessions.count()
+        # Use prefetched sessions to avoid database query if prefetch_related is active
+        if hasattr(obj, '_prefetched_objects_cache') and 'sessions' in obj._prefetched_objects_cache:
+            sessions = [s for s in obj.sessions.all() if s.finished_at is not None]
+        else:
+            sessions = list(obj.sessions.filter(finished_at__isnull=False))
+
+        total_plays = len(sessions)
         if total_plays == 0:
             return {
                 'total_plays': 0,
@@ -116,7 +121,11 @@ class QuizSerializer(serializers.ModelSerializer):
         percentages = []
         times = []
         for s in sessions:
-            q_count = s.total_questions if s.total_questions > 0 else s.attempts.count()
+            if hasattr(s, '_prefetched_objects_cache') and 'attempts' in s._prefetched_objects_cache:
+                q_count = s.total_questions if s.total_questions > 0 else len(s.attempts.all())
+            else:
+                q_count = s.total_questions if s.total_questions > 0 else s.attempts.count()
+
             if q_count > 0:
                 max_possible = q_count * 3000
                 percentages.append(min(100.0, (s.total_points / max_possible) * 100))

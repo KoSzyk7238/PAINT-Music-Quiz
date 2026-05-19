@@ -187,11 +187,11 @@ class SongDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SongSerializer
 
 class QuizList(generics.ListCreateAPIView):
-    queryset = Quiz.objects.all()
+    queryset = Quiz.objects.prefetch_related('sessions', 'sessions__attempts', 'questions', 'questions__answers', 'genre').all()
     serializer_class = QuizSerializer
 
 class QuizDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Quiz.objects.all()
+    queryset = Quiz.objects.prefetch_related('sessions', 'sessions__attempts', 'questions', 'questions__answers', 'genre').all()
     serializer_class = QuizSerializer
 
 class QuestionList(generics.ListCreateAPIView):

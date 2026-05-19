@@ -283,6 +283,23 @@ function GameView() {
     return () => clearInterval(timer);
   }, [isPlaying, timeLeft, isSubmitting]);
 
+  // Preload the next question's audio in the background for zero-lag playback
+  useEffect(() => {
+    if (currentQuiz?.questions && currentQuestionIndex !== undefined) {
+      const nextIndex = currentQuestionIndex + 1;
+      const nextQuestion = currentQuiz.questions[nextIndex];
+      if (nextQuestion) {
+        const nextRawSrc = nextQuestion.audio_source_url || nextQuestion.audio_source_file || '';
+        const nextFinalSrc = getFullAudioUrl(nextRawSrc);
+        if (nextFinalSrc) {
+            const audioPreload = new Audio();
+            audioPreload.src = nextFinalSrc;
+            audioPreload.preload = 'auto';
+        }
+      }
+    }
+  }, [currentQuestionIndex, currentQuiz]);
+
   const handleAudioEnded = () => {
     if (isSubmitting || feedback) return;
     setIsPlaying(false);
