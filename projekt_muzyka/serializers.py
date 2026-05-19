@@ -2,8 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from .models import Genre, Song, Quiz, Question, Answer, UserScore, GameSession, QuestionAttempt, UserProfile
-import re
-import requests
+from .apple_music import resolve_preview_url
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -71,41 +70,16 @@ class QuestionSerializer(serializers.ModelSerializer):
         if not url and obj.song and obj.song.apple_snippet_url:
             url = obj.song.apple_snippet_url
 
-        if url and 'music.apple.com' in url:
-            # Check for ?i=123456 first (Album links)
-            track_id = None
-            match_i = re.search(r'[?&]i=(\d+)', url)
-            if match_i:
-                track_id = match_i.group(1)
-            else:
-                # Fallback to path ID
-                match = re.search(r'/(\d+)(?:\?|$|&)', url)
-                if match:
-                    track_id = match.group(1)
-
-            if track_id:
-                try:
-                    # Extract country code if present (default to US)
-                    country = 'us'
-                    country_match = re.search(r'music\.apple\.com/([a-z]{2})/', url)
-                    if country_match:
-                        country = country_match.group(1)
-                        
-                    resp = requests.get(f"https://itunes.apple.com/lookup?id={track_id}&country={country}", timeout=3)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        if data.get('results') and len(data['results']) > 0:
-                            preview_url = data['results'][0].get('previewUrl')
-                            if preview_url:
-                                if not obj.audio_url and obj.song and obj.song.apple_snippet_url == url:
-                                    obj.song.apple_snippet_url = preview_url
-                                    obj.song.save(update_fields=['apple_snippet_url'])
-                                elif obj.audio_url == url:
-                                    obj.audio_url = preview_url
-                                    obj.save(update_fields=['audio_url'])
-                                return preview_url
-                except Exception as e:
-                    print(f"Error fetching Apple preview: {e}")
+        if url:
+            preview_url = resolve_preview_url(url)
+            if preview_url:
+                if not obj.audio_url and obj.song and obj.song.apple_snippet_url == url:
+                    obj.song.apple_snippet_url = preview_url
+                    obj.song.save(update_fields=['apple_snippet_url'])
+                elif obj.audio_url == url:
+                    obj.audio_url = preview_url
+                    obj.save(update_fields=['audio_url'])
+                return preview_url
         return url
 
     def get_audio_source_file(self, obj):

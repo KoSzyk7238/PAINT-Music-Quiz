@@ -1,5 +1,7 @@
+from django import forms
 from django.contrib import admin
 from .models import Genre, Song, Quiz, Question, Answer, UserScore, GameSession, QuestionAttempt, UserProfile
+from .apple_music import resolve_preview_url
 
 # Konfiguracja pozwalająca dodawać odpowiedzi bezpośrednio w widoku edycji pytania
 class AnswerInline(admin.TabularInline):
@@ -29,7 +31,21 @@ class GenreAdmin(admin.ModelAdmin):
     search_fields = ('name', 'slug')
 
 
+class SongAdminForm(forms.ModelForm):
+    class Meta:
+        model = Song
+        fields = "__all__"
+
+    def clean_apple_snippet_url(self):
+        url = self.cleaned_data.get("apple_snippet_url")
+        if not url:
+            return url
+        preview_url = resolve_preview_url(url)
+        return preview_url or url
+
+
 class SongAdmin(admin.ModelAdmin):
+    form = SongAdminForm
     list_display = ('title', 'artist', 'genre', 'release_year', 'created_at')
     list_filter = ('genre',)
     search_fields = ('title', 'artist')
