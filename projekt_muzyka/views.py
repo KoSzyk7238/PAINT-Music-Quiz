@@ -132,6 +132,18 @@ class ProfileView(APIView):
         if not request.user.is_authenticated:
             return Response({"error": "Brak zalogowanego uzytkownika."}, status=status.HTTP_401_UNAUTHORIZED)
         profile = get_or_create_profile(request.user)
+        
+        username = request.data.get("username")
+        if username:
+            username = username.strip()
+            if username != request.user.username:
+                if not username:
+                    return Response({"error": "Nazwa użytkownika nie może być pusta."}, status=status.HTTP_400_BAD_REQUEST)
+                if User.objects.filter(username=username).exists():
+                    return Response({"error": "Użytkownik o takiej nazwie już istnieje."}, status=status.HTTP_400_BAD_REQUEST)
+                request.user.username = username
+                request.user.save(update_fields=["username"])
+
         serializer = UserProfileSerializer(profile, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -356,6 +368,7 @@ class LeaderboardView(APIView):
                 "display_name": profile.display_name or profile.user.username,
                 "points": profile.total_points,
                 "streak": profile.current_streak,
+                "avatar": profile.avatar.url if profile.avatar else None,
             })
         return Response(data)
 
@@ -524,3 +537,45 @@ class AddSongToQuizView(APIView):
             Answer.objects.create(question=question, answer_text=song.title, is_correct=True)
 
         return Response(QuestionSerializer(question).data, status=status.HTTP_201_CREATED)
+
+
+class ChangePasswordView(APIView):
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"error": "Brak zalogowanego użytkownika."}, status=status.HTTP_401_UNAUTHORIZED)
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        if not old_password or not new_password:
+            return Response({"error": "Stare i nowe hasło są wymagane."}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(old_password):
+            return Response({"error": "Niepoprawne stare hasło."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(new_password, user=request.user)
+        except ValidationError as e:
+            return Response({"error": e.messages}, status=status.HTTP_400_BAD_REQUEST)
+            
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, request.user)
+        return Response({"message": "Hasło zostało pomyślnie zmienione."})
+
+
+class DeleteAccountView(APIView):
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"error": "Brak zalogowanego użytkownika."}, status=status.HTTP_401_UNAUTHORIZED)
+        password = request.data.get("password")
+        if not password:
+            return Response({"error": "Hasło jest wymagane w celu usunięcia konta."}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.check_password(password):
+            return Response({"error": "Niepoprawne hasło."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        user = request.user
+        logout(request)
+        user.delete()
+        return Response({"message": "Konto zostało usunięte."}, status=status.HTTP_204_NO_CONTENT)

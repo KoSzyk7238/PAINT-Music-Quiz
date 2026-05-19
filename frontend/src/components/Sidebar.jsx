@@ -54,7 +54,11 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, setActiveModa
                             onClick={() => setIsSidebarOpen(false)}
                             className="w-28 h-28 rounded-full bg-black border-4 border-green-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:border-green-500 hover:scale-105 transition-all flex items-center justify-center group cursor-pointer"
                         >
-                            <User size={60} className="text-gray-600 group-hover:text-green-500 transition-colors" />
+                            {user.profile?.avatar ? (
+                                <img src={user.profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                <User size={60} className="text-gray-600 group-hover:text-green-500 transition-colors" />
+                            )}
                         </Link>
                         <span className="text-xl font-medium text-white">{user.profile?.display_name || user.username}</span>
                     </div>

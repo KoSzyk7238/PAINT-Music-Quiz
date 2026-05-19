@@ -32,8 +32,9 @@ export default function Friends() {
                     name: u.display_name,
                     points: u.points,
                     streak: u.streak,
-                    isMe: currentUser === u.username || (!currentUser && false), // This gets updated correctly once currentUser state is set, but better to check in render or map if currentUser is ready. For now we will rely on username comparison in render.
-                    username: u.username
+                    isMe: currentUser === u.username || (!currentUser && false),
+                    username: u.username,
+                    avatar: u.avatar
                 }));
 
                 setUsers(mappedUsers);
@@ -107,8 +108,12 @@ export default function Friends() {
 
                             {getRankBadge(user.rank)}
 
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 ${isMe ? 'border-green-500' : 'border-gray-700 bg-gray-900'}`}>
-                                <User size={24} className={isMe ? 'text-green-500' : 'text-gray-500'} />
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 overflow-hidden bg-black ${isMe ? 'border-green-500' : 'border-gray-700 bg-gray-900'}`}>
+                                {user.avatar ? (
+                                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <User size={24} className={isMe ? 'text-green-500' : 'text-gray-500'} />
+                                )}
                             </div>
 
                             <div className="flex-1">

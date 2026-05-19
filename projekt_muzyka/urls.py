@@ -7,6 +7,8 @@ urlpatterns = [
     path('auth/logout/', views.LogoutView.as_view(), name='auth-logout'),
     path('auth/me/', views.MeView.as_view(), name='auth-me'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('auth/change-password/', views.ChangePasswordView.as_view(), name='auth-change-password'),
+    path('auth/delete-account/', views.DeleteAccountView.as_view(), name='auth-delete-account'),
 
     path('genres/', views.GenreList.as_view(), name='genre-list'),
     path('genres/<int:pk>/', views.GenreDetail.as_view(), name='genre-detail'),

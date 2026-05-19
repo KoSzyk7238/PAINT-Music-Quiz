@@ -95,10 +95,60 @@ class QuizSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)
     genre = GenreSerializer(read_only=True)
     genre_id = serializers.PrimaryKeyRelatedField(source="genre", queryset=Genre.objects.all(), write_only=True, allow_null=True, required=False)
+    stats = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
-        fields = ['id', 'title', 'description', 'cover_image', 'genre', 'genre_id', 'difficulty', 'num_questions_to_ask', 'created_at', 'questions']
+        fields = ['id', 'title', 'description', 'cover_image', 'genre', 'genre_id', 'difficulty', 'num_questions_to_ask', 'created_at', 'questions', 'stats']
+
+    def get_stats(self, obj):
+        sessions = obj.sessions.filter(finished_at__isnull=False)
+        total_plays = sessions.count()
+        if total_plays == 0:
+            return {
+                'total_plays': 0,
+                'average_score_percent': 0.0,
+                'average_time_seconds': 0.0,
+                'dynamic_difficulty': obj.get_difficulty_display()
+            }
+        
+        percentages = []
+        times = []
+        for s in sessions:
+            q_count = s.total_questions if s.total_questions > 0 else s.attempts.count()
+            if q_count > 0:
+                max_possible = q_count * 3000
+                percentages.append(min(100.0, (s.total_points / max_possible) * 100))
+            if s.average_time_seconds:
+                times.append(s.average_time_seconds)
+                
+        # Obliczanie mediany (statystycznego wyniku większości graczy)
+        if percentages:
+            percentages.sort()
+            n = len(percentages)
+            if n % 2 == 1:
+                median_percent = percentages[n // 2]
+            else:
+                median_percent = (percentages[n // 2 - 1] + percentages[n // 2]) / 2.0
+            avg_percent = round(median_percent, 1)
+        else:
+            avg_percent = 0.0
+            
+        avg_time = round(sum(times) / len(times), 1) if times else 0.0
+        
+        if avg_percent >= 75:
+            dynamic_diff = 'Łatwy'
+        elif avg_percent >= 45:
+            dynamic_diff = 'Średni'
+        else:
+            dynamic_diff = 'Trudny'
+            
+        return {
+            'total_plays': total_plays,
+            'average_score_percent': avg_percent,
+            'average_time_seconds': avg_time,
+            'dynamic_difficulty': dynamic_diff
+        }
 
 
 class QuestionAttemptSerializer(serializers.ModelSerializer):
