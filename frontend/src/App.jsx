@@ -277,11 +277,18 @@ function GameView() {
     return () => clearInterval(timer);
   }, [isPlaying, timeLeft, isSubmitting]);
 
+  const handleAudioEnded = () => {
+    if (isSubmitting || feedback) return;
+    setIsPlaying(false);
+    setTimeLeft(0);
+    handleAnswerSubmit('');
+  };
+
   const togglePlay = () => {
+    if (isSubmitting || feedback || timeLeft <= 0) return;
+
     const question = currentQuiz?.questions?.[currentQuestionIndex];
     if (!question) return;
-
-    if (timeLeft <= 0) setTimeLeft(question.time_limit || 30);
     
     if (isPlaying) {
         audioRef.current?.pause();
@@ -354,34 +361,39 @@ function GameView() {
 
         if (res.ok) {
             const data = await res.json();
-            if (data.is_correct) {
-                setSessionStreak(prev => prev + 1);
-                setSessionPoints(prev => prev + data.points_awarded);
-                setFeedback({ type: 'success', text: `DOBRZE! +${data.points_awarded} PKT` });
-            } else {
-                setSessionStreak(0);
-                setFeedback({ type: 'error', text: 'ŹLE!' });
-            }
+             if (data.is_correct) {
+                 setSessionStreak(prev => prev + 1);
+                 setSessionPoints(prev => prev + data.points_awarded);
+                 setFeedback({ type: 'success', text: `DOBRZE! +${data.points_awarded} PKT` });
 
-            if (nextQuestionTimeoutRef.current) {
-                clearTimeout(nextQuestionTimeoutRef.current);
-            }
+                 if (nextQuestionTimeoutRef.current) {
+                     clearTimeout(nextQuestionTimeoutRef.current);
+                 }
 
-            const nextIndex = currentQuestionIndex + 1;
-            if (nextIndex < currentQuiz.questions.length) {
-                nextQuestionTimeoutRef.current = setTimeout(() => {
-                    setFeedback(null);
-                    setCurrentQuestionIndex(nextIndex);
-                    setupQuestion(currentQuiz.questions[nextIndex]);
-                    nextQuestionTimeoutRef.current = null;
-                }, 2500);
-            } else {
-                nextQuestionTimeoutRef.current = setTimeout(() => {
-                    setFeedback(null);
-                    finishSession();
-                    nextQuestionTimeoutRef.current = null;
-                }, 2500);
-            }
+                 const nextIndex = currentQuestionIndex + 1;
+                 if (nextIndex < currentQuiz.questions.length) {
+                     nextQuestionTimeoutRef.current = setTimeout(() => {
+                         setFeedback(null);
+                         setCurrentQuestionIndex(nextIndex);
+                         setupQuestion(currentQuiz.questions[nextIndex]);
+                         nextQuestionTimeoutRef.current = null;
+                     }, 2500);
+                 } else {
+                     nextQuestionTimeoutRef.current = setTimeout(() => {
+                         setFeedback(null);
+                         finishSession();
+                         nextQuestionTimeoutRef.current = null;
+                     }, 2500);
+                 }
+             } else {
+                 setSessionStreak(0);
+                 setFeedback({ 
+                     type: 'error', 
+                     text: 'ŹLE!',
+                     correctTitle: question?.song?.title,
+                     correctArtist: question?.song?.artist
+                 });
+             }
         } else {
             setIsSubmitting(false); // Odblokowujemy w razie błędu serwera
         }
@@ -405,18 +417,35 @@ function GameView() {
       }
   };
 
+
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       if (e.key === 'Enter') {
         if (feedback) {
           e.preventDefault();
           proceedToNextStep();
+        } else if (currentQuiz && sessionId && !sessionSummary) {
+          const activeEl = document.activeElement;
+          const isInputFocused = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+          if (!isInputFocused && !isPlaying) {
+            e.preventDefault();
+            togglePlay();
+          }
+        }
+      } else if (e.key === ' ') {
+        if (currentQuiz && sessionId && !sessionSummary && !feedback) {
+          const activeEl = document.activeElement;
+          const isInputFocused = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+          if (!isInputFocused) {
+            e.preventDefault();
+            togglePlay();
+          }
         }
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [feedback, currentQuestionIndex, currentQuiz, sessionId]);
+  }, [feedback, currentQuestionIndex, currentQuiz, sessionId, isPlaying, inputValue, sessionSummary]);
 
   const filteredSuggestions = songsDatabase.filter(song => {
       const q = inputValue.toLowerCase();
@@ -448,6 +477,7 @@ function GameView() {
               setInputValue(filteredSuggestions[0].title);
           }
       } else if (e.key === 'Enter') {
+          e.stopPropagation();
           if (feedback) {
               e.preventDefault();
               proceedToNextStep();
@@ -455,8 +485,17 @@ function GameView() {
               e.preventDefault();
               setInputValue(filteredSuggestions[activeSuggestionIndex].title);
               setActiveSuggestionIndex(-1);
+          } else if (inputValue.trim() === '' && !isPlaying) {
+              e.preventDefault();
+              togglePlay();
           } else {
               handleAnswerSubmit(inputValue);
+          }
+      } else if (e.key === ' ') {
+          if (inputValue.trim() === '' && !feedback) {
+              e.preventDefault();
+              e.stopPropagation();
+              togglePlay();
           }
       }
   };
@@ -476,7 +515,7 @@ function GameView() {
   return (
       <div className="flex h-screen bg-black text-white font-sans overflow-hidden relative">
 
-        <audio ref={audioRef} preload="auto" />
+        <audio ref={audioRef} preload="auto" onEnded={handleAudioEnded} />
 
         <div className={`flex-1 flex flex-col p-10 transition-all duration-500 overflow-y-auto scrollbar-thin ${isSidebarOpen ? 'mr-80' : 'mr-0'}`}>
 
@@ -553,6 +592,7 @@ function GameView() {
                  activeSuggestionIndex={activeSuggestionIndex}
                  setActiveSuggestionIndex={setActiveSuggestionIndex}
                  onQuit={handleQuitSession}
+                 proceedToNextStep={proceedToNextStep}
               />
           )}
         </div>
@@ -571,7 +611,12 @@ function GameView() {
         {/* Intentional Quiz Entry Preview Popup */}
         {selectedQuizForPreview && (() => {
           const quiz = selectedQuizForPreview;
-          const coverUrl = quiz.cover_image ? (quiz.cover_image.includes('localhost:8000') ? quiz.cover_image.replace('http://localhost:8000', '') : quiz.cover_image) : '';
+          const getFullCoverUrl = (url) => {
+            if (!url) return '';
+            const idx = url.indexOf('/media/');
+            return idx !== -1 ? url.substring(idx) : url;
+          };
+          const coverUrl = getFullCoverUrl(quiz.cover_image);
           const placeholderGrad = getPlaceholderGradient(quiz.title);
           const stats = quiz.stats || { total_plays: 0, average_score_percent: 0.0, average_time_seconds: 0.0, dynamic_difficulty: quiz.difficulty };
 
@@ -614,7 +659,7 @@ function GameView() {
                 {/* Info & Stats (Right Side) */}
                 <div className="w-full md:w-7/12 p-8 flex flex-col justify-between overflow-y-auto">
                   <div>
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
                       <span className="bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
                         {quiz.genre?.name || 'Miks'}
                       </span>
@@ -626,6 +671,10 @@ function GameView() {
                           : 'bg-yellow-950/30 border-yellow-500/20 text-yellow-400'
                       }`}>
                         {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'}
+                      </span>
+                      <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider flex items-center gap-1">
+                        <Music size={11} />
+                        Pytania: {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)}
                       </span>
                     </div>
 

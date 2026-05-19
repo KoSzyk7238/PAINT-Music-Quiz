@@ -46,8 +46,16 @@ def calculate_time_score(max_points, min_points, time_taken, time_limit):
     if time_limit <= 0:
         return max_score
 
-    clamped_time = max(0, min(float(time_taken), float(time_limit)))
-    ratio = clamped_time / float(time_limit)
+    grace_period = 2.0
+    if time_taken <= grace_period:
+        return max_score
+
+    clamped_time = max(grace_period, min(float(time_taken), float(time_limit)))
+    if time_limit > grace_period:
+        ratio = (clamped_time - grace_period) / float(time_limit - grace_period)
+    else:
+        ratio = 0.0
+
     delta = int((max_score - min_score) * ratio)
     score = max_score - delta
     return max(min_score, score)
@@ -271,7 +279,18 @@ class GameSessionAttemptCreate(APIView):
 
         points_awarded = 0
         if is_correct:
-            points_awarded = calculate_time_score(question.points, question.min_points, time_taken_seconds, question.time_limit)
+            # Streak: consecutive correct attempts in this session before the current one
+            consecutive_correct = 0
+            last_attempts = QuestionAttempt.objects.filter(session=session).order_by('-created_at')
+            for att in last_attempts:
+                if att.is_correct:
+                    consecutive_correct += 1
+                else:
+                    break
+            
+            base_points = calculate_time_score(question.points, question.min_points, time_taken_seconds, question.final_time_limit)
+            bonus_multiplier = 1.0 + min(consecutive_correct * 0.1, 1.0)
+            points_awarded = int(base_points * bonus_multiplier)
 
         attempt = QuestionAttempt.objects.create(
             session=session,

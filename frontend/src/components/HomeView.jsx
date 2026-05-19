@@ -26,8 +26,9 @@ export default function HomeView({
     // Helper for media URLs
     const getFullCoverUrl = (url) => {
         if (!url) return '';
-        if (url.includes('localhost:8000')) {
-            return url.replace('http://localhost:8000', '');
+        const mediaIdx = url.indexOf('/media/');
+        if (mediaIdx !== -1) {
+            return url.substring(mediaIdx);
         }
         return url;
     };
@@ -74,7 +75,7 @@ export default function HomeView({
             <div 
                 key={quiz.id} 
                 onClick={() => startSession(quiz)}
-                className="flex-shrink-0 w-80 group cursor-pointer relative rounded-2xl overflow-hidden border border-white/5 bg-gray-950 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-300 transform hover:-translate-y-2 hover:z-10"
+                className="w-full group cursor-pointer relative rounded-2xl overflow-hidden border border-white/5 bg-gray-950 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-300 transform hover:-translate-y-2 hover:z-10"
             >
                 {/* Aspect ratio box for Netflix look */}
                 <div className="aspect-[16/10] relative w-full overflow-hidden">
@@ -120,7 +121,7 @@ export default function HomeView({
                             <span className={`text-[10px] font-black uppercase tracking-wider ${
                                 quiz.difficulty === 'EASY' ? 'text-green-400' : quiz.difficulty === 'HARD' ? 'text-red-400' : 'text-yellow-400'
                             }`}>
-                                {quiz.difficulty}
+                                {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'} &bull; {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)} pytań
                             </span>
                         </div>
                         {coverUrl && (
@@ -135,7 +136,7 @@ export default function HomeView({
                     
                     <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4 pt-3 border-t border-white/5">
                         <span className="flex items-center gap-1">
-                            <Music size={12}/> {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)} utworów
+                            <Music size={12}/> {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)} pytań
                         </span>
                         <span>
                             Graj teraz &rarr;
@@ -338,7 +339,7 @@ export default function HomeView({
                                 <Star className="text-green-400" size={20} fill="currentColor" />
                                 <h3 className="text-xl font-black text-white uppercase italic tracking-wide">Polecane wyzwania</h3>
                             </div>
-                            <div className="flex gap-6 overflow-x-auto no-scrollbar pt-4 pb-4 snap-x">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4 pb-4">
                                 {recommendedQuizzes.map(renderQuizCard)}
                             </div>
                         </div>
@@ -351,7 +352,7 @@ export default function HomeView({
                                 <Trophy className="text-red-400" size={20} />
                                 <h3 className="text-xl font-black text-white uppercase italic tracking-wide">Prawdziwy sprawdzian słuchu (Trudne)</h3>
                             </div>
-                            <div className="flex gap-6 overflow-x-auto no-scrollbar pt-4 pb-4 snap-x">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4 pb-4">
                                 {hardestQuizzes.map(renderQuizCard)}
                             </div>
                         </div>
@@ -364,7 +365,7 @@ export default function HomeView({
                                 <Sparkles className="text-yellow-400" size={20} />
                                 <h3 className="text-xl font-black text-white uppercase italic tracking-wide">Rozgrzewka muzyczna (Łatwe / Średnie)</h3>
                             </div>
-                            <div className="flex gap-6 overflow-x-auto no-scrollbar pt-4 pb-4 snap-x">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4 pb-4">
                                 {normalQuizzes.map(renderQuizCard)}
                             </div>
                         </div>

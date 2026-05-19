@@ -40,6 +40,7 @@ class Quiz(models.Model):
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, blank=True, null=True, related_name="quizzes", verbose_name="Gatunek")
     difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='MEDIUM', verbose_name="Poziom trudności")
     num_questions_to_ask = models.IntegerField(default=10, verbose_name="Liczba pytań w grze")
+    time_limit = models.IntegerField(default=15, verbose_name="Długość odtwarzania utworu (sekundy)")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data utworzenia")
 
     def __str__(self):
@@ -51,9 +52,15 @@ class Question(models.Model):
     question_text = models.TextField(verbose_name="Treść pytania", blank=True, default="")
     audio_url = models.URLField(max_length=255, blank=True, null=True, verbose_name="Zewnętrzny link do audio")
     audio_file = models.FileField(upload_to='quiz_audio/', blank=True, null=True, verbose_name="Własny plik audio")
-    time_limit = models.IntegerField(default=15, verbose_name="Limit czasu (sekundy)")
+    time_limit = models.IntegerField(blank=True, null=True, verbose_name="Limit czasu (sekundy) - jeśli puste, dziedziczy z Quizu")
     points = models.IntegerField(default=1, verbose_name="Punkty")
     min_points = models.IntegerField(default=0, verbose_name="Minimalne punkty")
+
+    @property
+    def final_time_limit(self):
+        if self.time_limit is not None:
+            return self.time_limit
+        return self.quiz.time_limit if self.quiz else 15
 
     def save(self, *args, **kwargs):
         if self.question_text is None:

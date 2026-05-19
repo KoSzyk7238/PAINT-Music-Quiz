@@ -2,7 +2,7 @@ import re
 import requests
 
 
-def resolve_preview_url(url):
+def fetch_apple_music_metadata(url):
     if not url or "music.apple.com" not in url:
         return None
 
@@ -26,7 +26,7 @@ def resolve_preview_url(url):
     try:
         resp = requests.get(
             f"https://itunes.apple.com/lookup?id={track_id}&country={country}",
-            timeout=3,
+            timeout=5,
         )
         if resp.status_code != 200:
             return None
@@ -34,6 +34,187 @@ def resolve_preview_url(url):
         results = data.get("results") or []
         if not results:
             return None
-        return results[0].get("previewUrl")
+
+        track = results[0]
+        metadata = {
+            'title': track.get('trackName'),
+            'artist': track.get('artistName'),
+            'preview_url': track.get('previewUrl'),
+            'genre': track.get('primaryGenreName'),
+        }
+
+        # Parse release year
+        release_date = track.get('releaseDate')
+        if release_date and len(release_date) >= 4:
+            try:
+                metadata['release_year'] = int(release_date[:4])
+            except ValueError:
+                pass
+
+        return metadata
     except Exception:
         return None
+
+
+def resolve_preview_url(url):
+    metadata = fetch_apple_music_metadata(url)
+    if metadata:
+        return metadata.get("preview_url")
+    return None
+
+
+def extract_track_ids_from_playlist_url(playlist_url):
+    if not playlist_url or "music.apple.com" not in playlist_url:
+        return []
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7"
+    }
+    try:
+        resp = requests.get(playlist_url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return []
+        html = resp.text
+    except Exception:
+        return []
+
+    # 1. Try parsing JSON-LD schema
+    ld_json_blocks = re.findall(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL)
+    song_urls = []
+
+    for block in ld_json_blocks:
+        try:
+            data = json.loads(block.strip())
+            
+            def get_songs(p_data):
+                urls = []
+                if isinstance(p_data, dict) and p_data.get("@type") == "MusicPlaylist":
+                    for track in p_data.get("track", []):
+                        if isinstance(track, dict) and track.get("url"):
+                            urls.append(track.get("url"))
+                return urls
+
+            if isinstance(data, dict):
+                song_urls.extend(get_songs(data))
+            elif isinstance(data, list):
+                for item in data:
+                    song_urls.extend(get_songs(item))
+        except Exception:
+            pass
+
+    # 2. Fallback to og:music:song or music:song tags
+    if not song_urls:
+        meta_songs = re.findall(r'<meta[^>]*property="music:song"[^>]*content="([^"]+)"', html)
+        if meta_songs:
+            song_urls.extend(meta_songs)
+
+    # 3. Fallback to regex finding any song URLs in the text
+    if not song_urls:
+        # e.g., "https://music.apple.com/pl/song/ran-to-atlanta/6769568597"
+        song_urls = re.findall(r'https://music\.apple\.com/[a-z]{2}/song/[^"\'\s>]+', html)
+
+    # Parse out the track IDs
+    track_ids = []
+    for url in song_urls:
+        match = re.search(r'/song/[^/]+/(\d+)|/song/(\d+)', url)
+        if match:
+            track_id = match.group(1) or match.group(2)
+            track_ids.append(track_id)
+
+    # De-duplicate while preserving order
+    seen = set()
+    unique_ids = []
+    for tid in track_ids:
+        if tid not in seen:
+            seen.add(tid)
+            unique_ids.append(tid)
+
+    return unique_ids
+
+
+def fetch_multiple_apple_music_metadata(track_ids, country="pl"):
+    if not track_ids:
+        return {}
+
+    import json
+    results_dict = {}
+    # Chunk into sizes of 100 for safety with the API
+    for i in range(0, len(track_ids), 100):
+        chunk = track_ids[i:i+100]
+        ids_str = ",".join(chunk)
+        try:
+            resp = requests.get(
+                f"https://itunes.apple.com/lookup?id={ids_str}&country={country}",
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                for track in data.get("results", []):
+                    tid = str(track.get("trackId"))
+                    metadata = {
+                        'title': track.get('trackName'),
+                        'artist': track.get('artistName'),
+                        'preview_url': track.get('previewUrl'),
+                        'genre': track.get('primaryGenreName'),
+                    }
+                    release_date = track.get('releaseDate')
+                    if release_date and len(release_date) >= 4:
+                        try:
+                            metadata['release_year'] = int(release_date[:4])
+                        except ValueError:
+                            pass
+                    results_dict[tid] = metadata
+        except Exception:
+            pass
+    return results_dict
+
+
+def extract_playlist_name_and_desc(playlist_url):
+    import html as html_lib
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7"
+    }
+    title = "Nowy Quiz Apple Music"
+    description = ""
+    try:
+        resp = requests.get(playlist_url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            html = resp.content.decode("utf-8", errors="replace")
+            title_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE)
+            if title_match:
+                title = title_match.group(1).strip()
+                title = re.sub(r'\s*(?:w|on)\s+Apple\s+Music$', '', title, flags=re.IGNORECASE)
+
+            desc_match = re.search(r'<meta[^>]*property="og:description"[^>]*content="([^"]+)"', html)
+            if not desc_match:
+                desc_match = re.search(r'<meta[^>]*name="description"[^>]*content="([^"]+)"', html)
+            if desc_match:
+                description = desc_match.group(1).strip()
+
+            title = html_lib.unescape(title).replace('\u200e', '').replace('\u200f', '').strip()
+            description = html_lib.unescape(description).replace('\u200e', '').replace('\u200f', '').strip()
+    except Exception:
+        pass
+    return title, description
+
+
+def fetch_playlist_cover_image(playlist_url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    }
+    try:
+        resp = requests.get(playlist_url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            html = resp.text
+            img_match = re.search(r'<meta[^>]*property="og:image"[^>]*content="([^"]+)"', html)
+            if img_match:
+                img_url = img_match.group(1)
+                img_resp = requests.get(img_url, timeout=5)
+                if img_resp.status_code == 200:
+                    return img_resp.content
+    except Exception:
+        pass
+    return None
+

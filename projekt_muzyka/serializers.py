@@ -46,6 +46,7 @@ class QuestionSerializer(serializers.ModelSerializer):
     song_id = serializers.PrimaryKeyRelatedField(source="song", queryset=Song.objects.all(), write_only=True, allow_null=True, required=False)
     audio_source_url = serializers.SerializerMethodField()
     audio_source_file = serializers.SerializerMethodField()
+    time_limit = serializers.ReadOnlyField(source='final_time_limit')
 
     class Meta:
         model = Question

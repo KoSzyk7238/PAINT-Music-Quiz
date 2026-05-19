@@ -1,0 +1,86 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='projekt_muzyka' %}">Projekt Muzyka</a>
+&rsaquo; <a href="{% url 'admin:projekt_muzyka_quiz_changelist' %}">Quizy</a>
+&rsaquo; Importuj z Apple Music
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h1>Importuj Quiz z Playlisty Apple Music</h1>
+  
+  {% if error %}
+    <p class="errornote">Błąd: {{ error }}</p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div>
+      <fieldset class="module aligned ">
+        <div class="form-row field-url">
+          <div>
+            <label class="required" for="id_url">Link do playlisty Apple Music:</label>
+            <input type="url" name="playlist_url" id="id_url" class="vURLField" required style="width: 600px;" 
+                   placeholder="https://music.apple.com/pl/playlist/rap-life/pl.abe8ba42278f4ef490e3a9fc5ec8e8c5"
+                   value="{{ playlist_url|default:'' }}">
+            <div class="help">Publiczny link do playlisty w Apple Music.</div>
+          </div>
+        </div>
+        
+        <div class="form-row field-title">
+          <div>
+            <label for="id_title">Własny tytuł quizu (opcjonalnie):</label>
+            <input type="text" name="title" id="id_title" class="vTextField" style="width: 400px;" value="{{ title|default:'' }}">
+            <div class="help">Pozostaw puste, aby pobrać tytuł bezpośrednio z playlisty.</div>
+          </div>
+        </div>
+
+        <div class="form-row field-description">
+          <div>
+            <label for="id_description">Własny opis (opcjonalnie):</label>
+            <textarea name="description" id="id_description" class="vLargeTextField" cols="40" rows="3" style="width: 400px;">{{ description|default:'' }}</textarea>
+            <div class="help">Pozostaw puste, aby pobrać opis z playlisty.</div>
+          </div>
+        </div>
+
+        <div class="form-row field-difficulty">
+          <div>
+            <label for="id_difficulty">Poziom trudności:</label>
+            <select name="difficulty" id="id_difficulty">
+              <option value="EASY" {% if difficulty == 'EASY' %}selected{% endif %}>Łatwy</option>
+              <option value="MEDIUM" {% if not difficulty or difficulty == 'MEDIUM' %}selected{% endif %}>Średni</option>
+              <option value="HARD" {% if difficulty == 'HARD' %}selected{% endif %}>Trudny</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row field-num_questions">
+          <div>
+            <label for="id_num_questions">Liczba pytań w jednej grze:</label>
+            <input type="number" name="num_questions_to_ask" id="id_num_questions" value="{{ num_questions_to_ask|default:'10' }}" min="1" required style="width: 100px;">
+            <div class="help">Liczba losowych utworów zadawanych graczowi w pojedynczej rozgrywce.</div>
+          </div>
+        </div>
+
+        <div class="form-row field-time_limit">
+          <div>
+            <label for="id_time_limit">Długość odtwarzania utworu (sekundy):</label>
+            <input type="number" name="time_limit" id="id_time_limit" value="{{ time_limit|default:'15' }}" min="1" max="30" required style="width: 100px;">
+            <div class="help">Czas odtwarzania utworu podczas zgadywania (zakres: 1 - 30 sekund).</div>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="submit-row">
+        <input type="submit" value="Importuj i utwórz quiz" class="default" name="_save" style="background-color: #8b5cf6; border-color: #7c3aed; color: white; padding: 10px 15px; font-weight: bold; cursor: pointer; border-radius: 4px;">
+        <p class="deletelink-box"><a href="../" class="closelink">Anuluj</a></p>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
