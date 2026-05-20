@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 export default function AuthModal({ activeModal, setActiveModal, guestSessionId }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -12,6 +13,12 @@ export default function AuthModal({ activeModal, setActiveModal, guestSessionId 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (activeModal === 'register' && password !== confirmPassword) {
+            setError('Hasła nie są identyczne');
+            return;
+        }
+
         setLoading(true);
 
         const url = activeModal === 'login' ? '/api/auth/login/' : '/api/auth/register/';
@@ -76,6 +83,16 @@ export default function AuthModal({ activeModal, setActiveModal, guestSessionId 
                         className="p-4 bg-black border border-gray-800 rounded-xl text-white focus:border-green-500 outline-none transition-all"
                         required
                     />
+                    {activeModal === 'register' && (
+                        <input
+                            type="password"
+                            placeholder="Powtórz hasło"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="p-4 bg-black border border-gray-800 rounded-xl text-white focus:border-green-500 outline-none transition-all"
+                            required
+                        />
+                    )}
                     <button 
                         type="submit" 
                         disabled={loading}
