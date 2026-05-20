@@ -69,7 +69,7 @@ function GameView() {
   const audioRef = useRef(null);
   const nextQuestionTimeoutRef = useRef(null);
 
-  const [volume, setVolume] = useState(0.5);
+  const [volume, setVolume] = useState(1);
 
   useEffect(() => {
     if (audioRef.current) {
