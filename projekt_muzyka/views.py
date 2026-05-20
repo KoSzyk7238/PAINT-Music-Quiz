@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import (
     Genre,
     Song,
@@ -183,6 +184,8 @@ class MeView(APIView):
 
 
 class ProfileView(APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return Response({"error": "Brak zalogowanego uzytkownika."}, status=status.HTTP_401_UNAUTHORIZED)

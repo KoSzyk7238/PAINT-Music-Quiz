@@ -233,8 +233,9 @@ function GameView() {
           const formattedSongs = [];
           const seen = new Set();
           songsList.forEach(s => {
-            if (s.title && !seen.has(s.title.toLowerCase())) {
-              seen.add(s.title.toLowerCase());
+            const key = `${(s.title || '').toLowerCase()}::${(s.artist || '').toLowerCase()}`;
+            if (s.title && !seen.has(key)) {
+              seen.add(key);
               formattedSongs.push({ title: s.title, artist: s.artist || '' });
             }
           });
