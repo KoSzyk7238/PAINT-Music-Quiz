@@ -234,7 +234,7 @@ export default function HomeView({
                 <div className="flex flex-col gap-12">
                     {/* Hero Section Banner (Slideshow Carousel) */}
                     {heroQuizzes.length > 0 && (
-                        <div className="relative w-full h-[400px] rounded-3xl overflow-hidden border border-white/5 bg-gray-950 shadow-2xl group">
+                        <div className="relative w-full h-[320px] sm:h-[400px] rounded-3xl overflow-hidden border border-white/5 bg-gray-950 shadow-2xl group">
                             {/* Slides Container */}
                             <div className="w-full h-full relative">
                                 {heroQuizzes.map((quiz, idx) => {
@@ -270,8 +270,8 @@ export default function HomeView({
                                             <div className="absolute inset-0 bg-gradient-to-r from-gray-950/90 via-transparent to-transparent"></div>
 
                                             {/* Hero Content */}
-                                            <div className="relative z-10 p-8 md:p-12 max-w-2xl text-left w-full">
-                                                <div className="flex items-center gap-2 mb-4">
+                                            <div className="relative z-10 p-6 sm:p-8 md:p-12 max-w-2xl text-left w-full">
+                                                <div className="flex items-center gap-2 mb-3 sm:mb-4">
                                                     <span className="bg-green-500 text-black text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider shadow-lg shadow-green-500/20">
                                                         NAJPOPULARNIEJSZY QUIZ
                                                     </span>
@@ -280,26 +280,26 @@ export default function HomeView({
                                                     </span>
                                                 </div>
 
-                                                <h2 className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight leading-none drop-shadow-md uppercase italic">
+                                                <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white mb-2 sm:mb-3 tracking-tight leading-none drop-shadow-md uppercase italic">
                                                     {quiz.title}
                                                 </h2>
 
-                                                <p className="text-gray-300 text-sm md:text-base line-clamp-3 mb-6 font-medium leading-relaxed drop-shadow">
+                                                <p className="text-gray-300 text-xs sm:text-sm md:text-base line-clamp-2 sm:line-clamp-3 mb-4 sm:mb-6 font-medium leading-relaxed drop-shadow">
                                                     {quiz.description || "Wciel się w rolę detektywa muzycznego i rozpoznaj najgorętsze hity po pierwszych sekundach nagrania!"}
                                                 </p>
 
-                                                <div className="flex flex-wrap items-center gap-4">
+                                                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                                                     <button 
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             startSession(quiz);
                                                         }}
-                                                        className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black font-black uppercase px-6 py-3.5 rounded-xl transition-all shadow-[0_10px_20px_rgba(34,197,94,0.3)] hover:scale-105 active:scale-95"
+                                                        className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black font-black uppercase px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl transition-all shadow-[0_10px_20px_rgba(34,197,94,0.3)] hover:scale-105 active:scale-95 text-sm sm:text-base"
                                                     >
-                                                        <Play fill="black" size={18} />
+                                                        <Play fill="black" size={16} className="sm:w-[18px] sm:h-[18px]" />
                                                         Zagraj teraz
                                                     </button>
-                                                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                                                    <div className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-widest">
                                                         Pytania: {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)} &bull; {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'}
                                                     </div>
                                                 </div>
@@ -311,7 +311,7 @@ export default function HomeView({
 
                             {/* Dots Indicators */}
                             {heroQuizzes.length > 1 && (
-                                <div className="absolute bottom-6 right-8 z-20 flex gap-2">
+                                <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-8 z-20 flex gap-2">
                                     {heroQuizzes.map((_, idx) => (
                                         <button
                                             key={idx}

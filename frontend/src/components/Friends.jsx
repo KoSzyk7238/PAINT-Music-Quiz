@@ -126,7 +126,7 @@ export default function Friends() {
     };
 
     const getRowStyle = (rank, isMe) => {
-        let baseStyle = "flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl border transition-all duration-300 hover:scale-[1.01] ";
+        let baseStyle = "flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all duration-300 hover:scale-[1.01] ";
 
         if (isMe) return baseStyle + "bg-green-900/20 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.2)]";
         if (rank === 1) return baseStyle + "bg-gradient-to-r from-yellow-950/20 to-black/50 border-yellow-500/50 shadow-[0_0_25px_rgba(234,179,8,0.15)]";
@@ -153,8 +153,8 @@ export default function Friends() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
-            <div className="w-full max-w-5xl flex justify-start mb-8 z-10">
+        <div className="min-h-screen bg-black text-white font-sans p-4 sm:p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
+            <div className="w-full max-w-5xl flex justify-start mb-4 sm:mb-8 z-10">
                 <Link
                     to="/"
                     className="flex items-center gap-3 text-green-500 hover:text-green-400 hover:-translate-x-2 transition-all font-bold uppercase tracking-widest"
@@ -163,10 +163,10 @@ export default function Friends() {
                 </Link>
             </div>
 
-            <h1 className="text-6xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10">
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10 text-center">
                 Ranking Graczy
             </h1>
-            <p className="text-gray-400 uppercase tracking-widest font-bold mb-10 text-sm">Rywalizuj z najlepszymi w quizach muzycznych</p>
+            <p className="text-gray-400 uppercase tracking-widest font-bold mb-6 sm:mb-10 text-xs sm:text-sm text-center">Rywalizuj z najlepszymi w quizach muzycznych</p>
 
             {/* MAIN LEADERBOARD TABS */}
             <div className="flex bg-gray-900/50 p-1.5 rounded-2xl border border-white/5 mb-8 z-10 max-w-md w-full">

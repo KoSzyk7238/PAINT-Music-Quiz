@@ -35,7 +35,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, setActiveModa
 
     return (
         <div
-            className={`fixed top-0 right-0 h-full w-80 bg-gray-900 border-l border-white/10 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] transform transition-transform duration-500 ease-in-out z-40 ${
+            className={`fixed top-0 right-0 h-full w-80 max-w-full bg-gray-900 border-l border-white/10 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] transform transition-transform duration-500 ease-in-out z-40 ${
                 isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
             } flex flex-col`}
         >

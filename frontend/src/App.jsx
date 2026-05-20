@@ -530,38 +530,46 @@ function GameView() {
 
         <audio ref={audioRef} preload="auto" onEnded={handleAudioEnded} />
 
-        <div className={`flex-1 flex flex-col p-10 transition-all duration-500 overflow-y-auto scrollbar-thin ${isSidebarOpen ? 'mr-80' : 'mr-0'}`}>
+        {/* Sidebar Backdrop Overlay on Mobile */}
+        {isSidebarOpen && (
+            <div 
+                onClick={() => setIsSidebarOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden animate-in fade-in duration-300"
+            />
+        )}
+
+        <div className={`flex-1 flex flex-col p-4 sm:p-10 transition-all duration-500 overflow-y-auto scrollbar-thin ${isSidebarOpen ? 'lg:mr-80' : 'mr-0'}`}>
 
           {!isSidebarOpen && (
               <button
                   onClick={() => setIsSidebarOpen(true)}
-                  className="fixed top-10 right-10 z-50 p-3 bg-gray-900/80 border border-gray-700 rounded-full hover:border-green-500 hover:text-green-400 transition-all hover:scale-110 shadow-[0_0_15px_rgba(0,0,0,0.5)] backdrop-blur-sm"
+                  className="fixed top-4 right-4 sm:top-10 sm:right-10 z-50 p-2 sm:p-3 bg-gray-900/80 border border-gray-700 rounded-full hover:border-green-500 hover:text-green-400 transition-all hover:scale-110 shadow-[0_0_15px_rgba(0,0,0,0.5)] backdrop-blur-sm"
               >
-                <Menu size={32} />
+                <Menu size={24} className="sm:w-8 sm:h-8" />
               </button>
           )}
 
           <div className="mb-6 text-center mt-4">
-            <h1 className="text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
               JAKI TO SYGNAŁ?
             </h1>
 
             {(currentQuiz && !sessionSummary) && (
-                <div className="flex justify-center gap-14 items-center text-xl text-gray-400 uppercase tracking-widest mt-8">
-                  <div className="flex items-center gap-4 relative">
+                <div className="flex flex-wrap justify-center gap-4 sm:gap-14 items-center text-sm sm:text-xl text-gray-400 uppercase tracking-widest mt-8">
+                  <div className="flex items-center gap-2 sm:gap-4 relative">
                     <div className={`transition-all duration-300 ${getFlameStyle(sessionStreak)}`}>
-                        <Flame fill="currentColor" size={28} />
+                        <Flame fill="currentColor" size={24} className="sm:w-7 sm:h-7" />
                     </div>
                     <span>streak:</span>
-                    <span className="text-white font-bold text-3xl">{sessionStreak}</span>
+                    <span className="text-white font-bold text-xl sm:text-3xl">{sessionStreak}</span>
                   </div>
-                  <div className="px-6 py-2 border-2 border-gray-700 bg-gray-900/50 rounded-full truncate max-w-xs shadow-lg">
+                  <div className="px-4 py-1.5 sm:px-6 sm:py-2 border-2 border-gray-700 bg-gray-900/50 rounded-full truncate max-w-[200px] sm:max-w-xs shadow-lg">
                     gatunek: <span className="text-green-500 font-black">{currentCategoryName}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Trophy className="text-yellow-500" fill="currentColor" size={28} />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Trophy className="text-yellow-500" fill="currentColor" size={24} className="sm:w-7 sm:h-7" />
                     <span>punkty:</span>
-                    <span className="text-yellow-400 font-black text-4xl drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">{sessionPoints}</span>
+                    <span className="text-yellow-400 font-black text-2xl sm:text-4xl drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">{sessionPoints}</span>
                   </div>
                 </div>
             )}
@@ -648,7 +656,7 @@ function GameView() {
                 </button>
 
                 {/* Okładka / Gradient (Left Side) */}
-                <div className="w-full md:w-5/12 relative aspect-video md:aspect-auto min-h-[220px] md:min-h-full flex-shrink-0 bg-gray-900 border-r border-white/5">
+                <div className="w-full md:w-5/12 relative aspect-video md:aspect-auto min-h-[200px] md:min-h-full flex-shrink-0 bg-gray-900 border-b md:border-b-0 md:border-r border-white/5">
                   {coverUrl ? (
                     <img 
                       src={coverUrl} 
@@ -673,7 +681,7 @@ function GameView() {
                 </div>
 
                 {/* Info & Stats (Right Side) */}
-                <div className="w-full md:w-7/12 p-8 flex flex-col justify-between overflow-y-auto">
+                <div className="w-full md:w-7/12 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto">
                   <div>
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                       <span className="bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
@@ -694,7 +702,7 @@ function GameView() {
                       </span>
                     </div>
 
-                    <h3 className="text-3xl font-black text-white mb-2 leading-none uppercase italic tracking-tight">
+                    <h3 className="text-2xl sm:text-3xl font-black text-white mb-2 leading-none uppercase italic tracking-tight">
                       {quiz.title}
                     </h3>
 
@@ -703,7 +711,7 @@ function GameView() {
                     </p>
 
                     {/* Statystyki */}
-                    <div className="bg-gray-900/50 border border-gray-800/80 rounded-2xl p-5 mb-8 flex flex-col gap-4">
+                    <div className="bg-gray-900/50 border border-gray-800/80 rounded-2xl p-4 sm:p-5 mb-6 sm:mb-8 flex flex-col gap-4">
                       <h4 className="text-xs font-black uppercase tracking-widest text-gray-500 border-b border-white/5 pb-2 flex items-center gap-1.5">
                         <BarChart2 size={14} className="text-green-500" />
                         Statystyki społeczności
@@ -711,49 +719,44 @@ function GameView() {
                       
                       <div className="grid grid-cols-2 gap-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
                         <div>
-                          <span className="text-[10px] text-gray-500 block mb-1">Rozegrane gry</span>
-                          <span className="text-white text-base font-black flex items-center gap-1">
-                            <Play size={14} className="text-green-400" fill="currentColor" /> {stats.total_plays}
-                          </span>
+                           <span className="text-[10px] text-gray-500 block mb-1">Rozegrane gry</span>
+                           <span className="text-white text-base font-black flex items-center gap-1">
+                             <Play size={14} className="text-green-400" fill="currentColor" /> {stats.total_plays}
+                           </span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-gray-500 block mb-1">Statystyczny wynik</span>
-                          <span className="text-white text-base font-black flex items-center gap-1">
-                            <Sparkles size={14} className="text-yellow-400" /> 
-                            {stats.total_plays > 0 ? `${stats.average_score_percent}%` : 'Brak danych'}
-                          </span>
-                          {stats.total_plays > 0 && (
-                            <span className="text-[9px] text-gray-500 block leading-tight mt-0.5 normal-case font-medium">
-                              Większość graczy zdobywa {stats.average_score_percent}% maksymalnej liczby punktów.
-                            </span>
-                          )}
+                           <span className="text-[10px] text-gray-500 block mb-1">Statystyczny wynik</span>
+                           <span className="text-white text-base font-black flex items-center gap-1">
+                             <Sparkles size={14} className="text-yellow-400" /> 
+                             {stats.total_plays > 0 ? `${stats.average_score_percent}%` : 'Brak danych'}
+                           </span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-gray-500 block mb-1">Średni czas</span>
-                          <span className="text-white text-base font-black flex items-center gap-1">
-                            <Clock size={14} className="text-blue-400" /> 
-                            {stats.total_plays > 0 ? `${stats.average_time_seconds} s` : 'Brak danych'}
-                          </span>
+                           <span className="text-[10px] text-gray-500 block mb-1">Średni czas</span>
+                           <span className="text-white text-base font-black flex items-center gap-1">
+                             <Clock size={14} className="text-blue-400" /> 
+                             {stats.total_plays > 0 ? `${stats.average_time_seconds} s` : 'Brak danych'}
+                           </span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-gray-500 block mb-1">Dynamiczna trudność</span>
-                          <span className={`text-base font-black flex items-center gap-1 ${
-                            stats.dynamic_difficulty === 'Łatwy' ? 'text-green-400' : stats.dynamic_difficulty === 'Trudny' ? 'text-red-400' : 'text-yellow-400'
-                          }`}>
-                            <Trophy size={14} /> {stats.dynamic_difficulty}
-                          </span>
+                           <span className="text-[10px] text-gray-500 block mb-1">Dynamiczna trudność</span>
+                           <span className={`text-base font-black flex items-center gap-1 ${
+                             stats.dynamic_difficulty === 'Łatwy' ? 'text-green-400' : stats.dynamic_difficulty === 'Trudny' ? 'text-red-400' : 'text-yellow-400'
+                           }`}>
+                             <Trophy size={14} /> {stats.dynamic_difficulty}
+                           </span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-4 mt-auto">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-auto">
                     <button 
                       onClick={() => {
                         startSession(quiz);
                         setSelectedQuizForPreview(null);
                       }}
-                      className="flex-1 bg-green-500 hover:bg-green-400 text-black font-black uppercase tracking-wider py-4 rounded-2xl transition-all shadow-[0_0_30px_rgba(34,197,94,0.35)] flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                      className="flex-grow bg-green-500 hover:bg-green-400 text-black font-black uppercase tracking-wider py-4 rounded-2xl transition-all shadow-[0_0_30px_rgba(34,197,94,0.35)] flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <Play fill="black" size={18} />
                       Rozpocznij grę
@@ -774,17 +777,17 @@ function GameView() {
         {/* Quit Quiz Confirmation Modal */}
         {showQuitConfirmation && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-950 border border-gray-800 rounded-3xl w-full max-w-md p-8 shadow-2xl relative text-center">
+            <div className="bg-gray-950 border border-gray-800 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative text-center">
               <h3 className="text-2xl font-black text-red-500 mb-3 uppercase italic tracking-tight">
                 Przerwać quiz?
               </h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-8 font-medium">
                 Czy na pewno chcesz opuścić trwający quiz? Twój dotychczasowy postęp w tej sesji zostanie całkowicie utracony.
               </p>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <button 
                   onClick={confirmQuitSession}
-                  className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-wider py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex-grow bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-wider py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Tak, wyjdź
                 </button>
@@ -796,7 +799,7 @@ function GameView() {
                       audioRef.current?.play().catch(e => console.error("Auto-resume failed:", e));
                     }
                   }}
-                  className="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-black uppercase tracking-wider py-3.5 rounded-xl border border-gray-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex-grow bg-gray-900 hover:bg-gray-800 text-white font-black uppercase tracking-wider py-3.5 rounded-xl border border-gray-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Graj dalej
                 </button>

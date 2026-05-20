@@ -219,8 +219,8 @@ export default function Profile() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
-            <div className="w-full max-w-4xl flex justify-start mb-8 z-10">
+        <div className="min-h-screen bg-black text-white font-sans p-4 sm:p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
+            <div className="w-full max-w-4xl flex justify-start mb-4 sm:mb-8 z-10">
                 <Link
                     to="/"
                     className="flex items-center gap-3 text-green-500 hover:text-green-400 hover:-translate-x-2 transition-all font-bold uppercase tracking-widest"
@@ -229,14 +229,14 @@ export default function Profile() {
                 </Link>
             </div>
 
-            <h1 className="text-6xl font-black tracking-tighter mb-12 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10">
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-6 sm:mb-12 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10 text-center">
                 Ustawienia Konta
             </h1>
 
             <div className="w-full max-w-4xl flex flex-col gap-10 z-10 pb-20">
 
                 {/* --- SEKCJA 1: DANE PROFILU & AVATAR --- */}
-                <div className="bg-gray-900/40 p-10 rounded-[32px] border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex flex-col md:flex-row gap-10 items-center">
+                <div className="bg-gray-900/40 p-6 sm:p-10 rounded-2xl sm:rounded-[32px] border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex flex-col md:flex-row gap-10 items-center">
                     
                     {/* Upload Avatara */}
                     <div className="relative group cursor-pointer shrink-0" onClick={handleAvatarClick}>
@@ -309,7 +309,7 @@ export default function Profile() {
                 </div>
 
                 {/* --- SEKCJA 2: ZMIANA HASŁA --- */}
-                <div className="bg-gray-900/40 p-10 rounded-[32px] border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
+                <div className="bg-gray-900/40 p-6 sm:p-10 rounded-2xl sm:rounded-[32px] border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
                     <div className="flex items-center gap-3 mb-6">
                         <KeyRound className="text-green-500" size={28} />
                         <h2 className="text-2xl font-black italic uppercase tracking-wider text-gray-400">Zmiana Hasła</h2>
@@ -366,7 +366,7 @@ export default function Profile() {
                 </div>
 
                 {/* --- SEKCJA 3: STREFA NIEBEZPIECZEŃSTWA (DANGER ZONE) --- */}
-                <div className="bg-red-950/10 p-10 rounded-[32px] border border-red-500/20 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
+                <div className="bg-red-950/10 p-6 sm:p-10 rounded-2xl sm:rounded-[32px] border border-red-500/20 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
                     <div className="flex items-center gap-3 mb-6">
                         <UserMinus className="text-red-500" size={28} />
                         <h2 className="text-2xl font-black italic uppercase tracking-wider text-red-500/80">Strefa Zagrożenia</h2>
@@ -392,7 +392,7 @@ export default function Profile() {
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
                     <form 
                         onSubmit={(e) => { e.preventDefault(); handleDeleteAccount(); }}
-                        className="bg-gray-900 border-2 border-red-500/30 p-10 rounded-3xl max-w-md w-full flex flex-col gap-6 shadow-[0_0_50px_rgba(239,68,68,0.25)] animate-in zoom-in-95 duration-200"
+                        className="bg-gray-900 border-2 border-red-500/30 p-6 sm:p-10 rounded-2xl sm:rounded-3xl max-w-md w-full flex flex-col gap-6 shadow-[0_0_50px_rgba(239,68,68,0.25)] animate-in zoom-in-95 duration-200"
                     >
                         <div className="flex flex-col items-center text-center gap-3">
                             <ShieldAlert className="text-red-500" size={60} />
@@ -413,7 +413,7 @@ export default function Profile() {
                             className="p-4 bg-black border-2 border-gray-800 rounded-xl text-white focus:border-red-500 outline-none text-center"
                         />
 
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -421,13 +421,13 @@ export default function Profile() {
                                     setDeleteConfirmPassword('');
                                     setDeleteError(null);
                                 }}
-                                className="flex-1 py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700 transition-colors uppercase tracking-wider text-sm"
+                                className="flex-grow py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700 transition-colors uppercase tracking-wider text-sm"
                             >
                                 Anuluj
                             </button>
                             <button
                                 type="submit"
-                                className="flex-1 py-4 bg-red-600 text-white font-black rounded-xl hover:bg-red-500 transition-colors uppercase tracking-wider text-sm"
+                                className="flex-grow py-4 bg-red-600 text-white font-black rounded-xl hover:bg-red-500 transition-colors uppercase tracking-wider text-sm"
                             >
                                 Usuń konto
                             </button>

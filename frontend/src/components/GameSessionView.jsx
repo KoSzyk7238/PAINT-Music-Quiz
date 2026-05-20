@@ -32,37 +32,40 @@ export default function GameSessionView({
     return (
         <div className="w-full">
             {question ? (
-                <div className="flex flex-col mb-16 max-w-4xl mx-auto w-full bg-gray-900/40 p-8 rounded-3xl border border-white/5 relative">
-                    <button
-                        onClick={onQuit}
-                        className="absolute -top-4 -left-4 flex items-center gap-2 bg-red-950/80 hover:bg-red-900 text-red-400 hover:text-red-200 border-2 border-red-900/50 px-4 py-2 rounded-full font-black text-sm uppercase tracking-widest shadow-lg transition-all active:scale-95"
-                        title="Przerwij quiz i wróć do menu"
-                    >
-                        <X size={16} />
-                        Przerwij
-                    </button>
+                <div className="flex flex-col sm:relative mb-16 max-w-4xl mx-auto w-full bg-gray-900/40 p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/5">
+                    {/* Top control bar: absolute on desktop, in-flow on mobile */}
+                    <div className="flex justify-between items-center w-full mb-6 sm:mb-2">
+                        <button
+                            onClick={onQuit}
+                            className="sm:absolute sm:-top-4 sm:-left-4 flex items-center gap-2 bg-red-950/80 hover:bg-red-900 text-red-400 hover:text-red-200 border-2 border-red-900/50 px-4 py-2 rounded-full font-black text-sm uppercase tracking-widest shadow-lg transition-all active:scale-95 z-10"
+                            title="Przerwij quiz i wróć do menu"
+                        >
+                            <X size={16} />
+                            Przerwij
+                        </button>
 
-                    <div className="absolute -top-4 -right-4 bg-gray-800 text-gray-400 border-2 border-gray-700 px-4 py-2 rounded-full font-black text-sm uppercase tracking-widest shadow-lg">
-                        Pytanie {currentQuestionIndex + 1} / {currentQuiz.questions.length}
+                        <div className="sm:absolute sm:-top-4 sm:-right-4 bg-gray-800 text-gray-400 border-2 border-gray-700 px-4 py-2 rounded-full font-black text-sm uppercase tracking-widest shadow-lg">
+                            Pytanie {currentQuestionIndex + 1} / {currentQuiz.questions.length}
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-8 mb-6 mt-2">
+                    <div className="flex items-center gap-4 sm:gap-8 mb-6 mt-2">
                         <button
                             onClick={togglePlay}
                             disabled={!!feedback || isSubmitting}
-                            className={`rounded-full p-6 transition-all hover:scale-105 shrink-0 ${
+                            className={`rounded-full p-4 sm:p-6 transition-all hover:scale-105 shrink-0 ${
                                 isPlaying ? 'bg-yellow-500 hover:bg-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-green-500 hover:bg-green-400 shadow-[0_0_20px_rgba(34,197,94,0.4)]'
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             {isPlaying ? (
-                                <Pause fill="black" size={40} />
+                                <Pause fill="black" size={24} className="w-6 h-6 sm:w-10 sm:h-10" />
                             ) : (
-                                <Play fill="black" size={40} className="ml-1" />
+                                <Play fill="black" size={24} className="ml-0.5 w-6 h-6 sm:w-10 sm:h-10" />
                             )}
                         </button>
 
                         <div className="flex-1 flex flex-col">
-                            <div className={`flex justify-between items-center font-mono mb-3 text-xl transition-colors ${
+                            <div className={`flex justify-between items-center font-mono mb-3 text-sm sm:text-xl transition-colors ${
                                 isGracePeriod 
                                     ? 'text-yellow-400' 
                                     : isTimeRunningOut 
@@ -144,19 +147,19 @@ export default function GameSessionView({
 
             <div className="w-full max-w-3xl mx-auto flex flex-col relative group">
                 {feedback && (
-                    <div className={`mb-6 p-6 rounded-2xl text-center text-3xl font-black uppercase tracking-widest animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col items-center justify-center ${
+                    <div className={`mb-6 p-4 sm:p-6 rounded-2xl text-center text-xl sm:text-3xl font-black uppercase tracking-widest animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col items-center justify-center ${
                         feedback.type === 'success' ? 'bg-green-500 text-black shadow-[0_0_30px_rgba(34,197,94,0.5)]' : 'bg-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,0.5)]'
                     }`}>
                         <div>{feedback.text}</div>
                         {feedback.type === 'error' && feedback.correctTitle && (
-                            <div className="text-lg font-bold tracking-normal normal-case mt-2 text-red-200">
+                            <div className="text-sm sm:text-lg font-bold tracking-normal normal-case mt-2 text-red-200">
                                 Poprawna odpowiedź: <span className="underline decoration-red-400 font-extrabold text-white">{feedback.correctArtist} - {feedback.correctTitle}</span>
                             </div>
                         )}
                         {feedback.type === 'error' && (
                             <button
                                 onClick={proceedToNextStep}
-                                className="mt-4 px-6 py-2.5 bg-white text-black font-black text-sm uppercase tracking-wider rounded-xl hover:bg-gray-200 hover:scale-105 active:scale-95 transition-all shadow-[0_4px_12px_rgba(255,255,255,0.2)]"
+                                className="mt-4 px-5 py-2 bg-white text-black font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl hover:bg-gray-200 hover:scale-105 active:scale-95 transition-all shadow-[0_4px_12px_rgba(255,255,255,0.2)]"
                             >
                                 Dalej (Enter)
                             </button>
@@ -164,54 +167,57 @@ export default function GameSessionView({
                     </div>
                 )}
                 
-                <div className="flex gap-4 relative">
-                    <input
-                        type="text"
-                        placeholder="Zgaduj utwór..."
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        disabled={isSubmitting}
-                        className="flex-1 bg-gray-900/80 border-2 border-gray-700 text-white p-5 text-2xl rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all z-20 disabled:opacity-50"
-                    />
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative">
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            placeholder="Zgaduj utwór..."
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            disabled={isSubmitting}
+                            className="w-full bg-gray-900/80 border-2 border-gray-700 text-white p-4 sm:p-5 text-lg sm:text-2xl rounded-xl sm:rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all z-20 disabled:opacity-50"
+                        />
+                        
+                        {showSuggestions && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border-2 border-gray-700 rounded-2xl max-h-60 overflow-y-auto z-30 shadow-2xl backdrop-blur-xl scrollbar-thin">
+                                {filteredSuggestions.map((song, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => {
+                                            setInputValue(song.title);
+                                            setActiveSuggestionIndex(-1);
+                                        }}
+                                        className={`p-3 sm:p-4 border-b border-gray-800 last:border-0 cursor-pointer transition-all font-medium text-sm sm:text-lg flex justify-between items-center ${
+                                            index === activeSuggestionIndex 
+                                            ? 'bg-green-500 text-black' 
+                                            : 'hover:bg-green-500/50 text-white'
+                                        }`}
+                                    >
+                                        <span>{song.title}</span>
+                                        {song.artist && (
+                                            <span className={`text-[10px] sm:text-xs uppercase tracking-wider font-bold ml-4 shrink-0 px-2 py-0.5 rounded ${
+                                                index === activeSuggestionIndex
+                                                ? 'bg-black/20 text-black/80'
+                                                : 'bg-gray-800 text-gray-400'
+                                            }`}>
+                                                {song.artist}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    
                     <button
                         onClick={() => handleAnswerSubmit(inputValue)}
                         disabled={isSubmitting}
-                        className="px-8 bg-green-500 text-black font-black text-xl rounded-2xl hover:bg-green-400 transition-all shadow-[0_10px_20px_rgba(34,197,94,0.3)] z-20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="py-4 sm:py-0 px-8 bg-green-500 text-black font-black text-lg sm:text-xl rounded-xl sm:rounded-2xl hover:bg-green-400 transition-all shadow-[0_10px_20px_rgba(34,197,94,0.3)] z-20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         ZATWIERDŹ
                     </button>
                 </div>
-
-                {showSuggestions && (
-                    <div className="absolute top-full left-0 right-[200px] mt-2 bg-gray-900 border-2 border-gray-700 rounded-2xl max-h-60 overflow-y-auto z-30 shadow-2xl backdrop-blur-xl scrollbar-thin">
-                        {filteredSuggestions.map((song, index) => (
-                            <div
-                                key={index}
-                                onClick={() => {
-                                    setInputValue(song.title);
-                                    setActiveSuggestionIndex(-1);
-                                }}
-                                className={`p-4 border-b border-gray-800 last:border-0 cursor-pointer transition-all font-medium text-lg flex justify-between items-center ${
-                                    index === activeSuggestionIndex 
-                                    ? 'bg-green-500 text-black' 
-                                    : 'hover:bg-green-500/50 text-white'
-                                }`}
-                            >
-                                <span>{song.title}</span>
-                                {song.artist && (
-                                    <span className={`text-xs uppercase tracking-wider font-bold ml-4 shrink-0 px-2 py-0.5 rounded ${
-                                        index === activeSuggestionIndex
-                                        ? 'bg-black/20 text-black/80'
-                                        : 'bg-gray-800 text-gray-400'
-                                    }`}>
-                                        {song.artist}
-                                    </span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
         </div>
     );

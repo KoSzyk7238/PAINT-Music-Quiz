@@ -134,9 +134,9 @@ export default function Stats() {
 
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
+        <div className="min-h-screen bg-black text-white font-sans p-4 sm:p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
 
-            <div className="w-full max-w-5xl flex justify-start mb-8 z-10">
+            <div className="w-full max-w-5xl flex justify-start mb-4 sm:mb-8 z-10">
                 <Link
                     to="/"
                     className="flex items-center gap-3 text-green-500 hover:text-green-400 hover:-translate-x-2 transition-all font-bold uppercase tracking-widest"
@@ -145,16 +145,16 @@ export default function Stats() {
                 </Link>
             </div>
 
-            <h1 className="text-6xl font-black tracking-tighter mb-12 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10">
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-6 sm:mb-12 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10 text-center">
                 Statystyki
             </h1>
 
             <div className="w-full max-w-5xl flex flex-col gap-10 z-10">
 
                 {/* --- SEKCJA: OGÓLNE STATYSTYKI --- */}
-                <div className="bg-gray-900/40 p-8 rounded-3xl border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
+                <div className="bg-gray-900/40 p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
                     <h2 className="text-2xl font-black italic uppercase tracking-widest mb-6 text-gray-400">Podsumowanie</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                         {generalStats.map((stat, idx) => (
                             <div key={idx} className={`bg-black/50 p-6 rounded-2xl border-t-4 ${stat.color} flex flex-col items-center justify-center hover:scale-105 transition-transform duration-300`}>
                                 {stat.icon}
@@ -169,13 +169,13 @@ export default function Stats() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
 
                     {/* Wykres 1: Gatunki muzyczne */}
-                    <div className="bg-gray-900/40 p-8 rounded-3xl border border-white/5 flex flex-col items-center">
+                    <div className="bg-gray-900/40 p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/5 flex flex-col items-center">
                         <h2 className="text-xl font-black italic uppercase tracking-widest mb-8 text-gray-400 w-full text-left">Gatunki muzyczne</h2>
-                        <div className="flex w-full items-center justify-around">
+                        <div className="flex flex-col sm:flex-row w-full items-center gap-6 sm:gap-4 justify-around">
                             {genre_distribution.length > 0 ? (
                                 <>
                                     <div
-                                        className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)]"
+                                        className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)] shrink-0"
                                         style={{ background: `conic-gradient(${genreGradient})` }}
                                     >
                                         <div className="absolute inset-4 bg-gray-900 rounded-full flex flex-col items-center justify-center">
@@ -186,8 +186,8 @@ export default function Stats() {
                                     <div className="flex flex-col gap-3">
                                         {genre_distribution.slice(0, 5).map((g, idx) => (
                                             <div key={idx} className="flex items-center gap-3">
-                                                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colors[idx % colors.length] }}></div>
-                                                <span className="w-20 font-bold truncate" title={g.genre}>{g.genre}</span>
+                                                <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: colors[idx % colors.length] }}></div>
+                                                <span className="w-24 font-bold truncate" title={g.genre}>{g.genre}</span>
                                                 <span className="text-gray-400">{Math.round((g.count / totalGenres) * 100)}%</span>
                                             </div>
                                         ))}
@@ -200,13 +200,13 @@ export default function Stats() {
                     </div>
 
                     {/* Wykres 2: Ulubione Dekady */}
-                    <div className="bg-gray-900/40 p-8 rounded-3xl border border-white/5 flex flex-col items-center">
+                    <div className="bg-gray-900/40 p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/5 flex flex-col items-center">
                         <h2 className="text-xl font-black italic uppercase tracking-widest mb-8 text-gray-400 w-full text-left">Trafność dekadami</h2>
-                        <div className="flex w-full items-center justify-around">
+                        <div className="flex flex-col sm:flex-row w-full items-center gap-6 sm:gap-4 justify-around">
                             {decadeEntries.length > 0 ? (
                                 <>
                                     <div
-                                        className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)]"
+                                        className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)] shrink-0"
                                         style={{ background: `conic-gradient(${decadeGradient})` }}
                                     >
                                         <div className="absolute inset-4 bg-gray-900 rounded-full flex flex-col items-center justify-center">
@@ -217,8 +217,8 @@ export default function Stats() {
                                     <div className="flex flex-col gap-3">
                                         {decadeEntries.slice(0, 5).map(([decade, count], idx) => (
                                             <div key={idx} className="flex items-center gap-3">
-                                                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: decadeColors[idx % decadeColors.length] }}></div>
-                                                <span className="w-20 font-bold">{decade}</span>
+                                                <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: decadeColors[idx % decadeColors.length] }}></div>
+                                                <span className="w-24 font-bold">{decade}</span>
                                                 <span className="text-gray-400">{Math.round((count / totalDecades) * 100)}%</span>
                                             </div>
                                         ))}
@@ -232,18 +232,20 @@ export default function Stats() {
                 </div>
 
                 {/* --- SEKCJA: OSTATNIE ROZGRYWKI --- */}
-                <div className="bg-gray-900/40 p-8 rounded-3xl border border-white/5 mb-10">
+                <div className="bg-gray-900/40 p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/5 mb-10">
                     <h2 className="text-2xl font-black italic uppercase tracking-widest mb-6 text-gray-400">Ostatnie rozgrywki</h2>
                     <div className="flex flex-col gap-4">
                         {recent_games.length > 0 ? (
                             recent_games.map((game, idx) => (
-                                <div key={idx} className="bg-black/50 p-4 rounded-xl border border-gray-800 flex items-center gap-6">
-                                    <span className="text-gray-500 text-sm font-mono">{formatTime(game.played_at)}</span>
-                                    <span className="font-black uppercase w-24 text-blue-500 truncate" title={game.category}>{game.category}</span>
-                                    <span className="text-yellow-500 font-bold w-20">{game.points} pkt</span>
-                                    <span className="text-gray-400 text-sm">{game.correct}/{game.total}</span>
+                                <div key={idx} className="bg-black/50 p-4 rounded-xl border border-gray-800 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                                    <div className="flex flex-wrap items-center justify-between sm:justify-start gap-4">
+                                        <span className="text-gray-500 text-xs sm:text-sm font-mono">{formatTime(game.played_at)}</span>
+                                        <span className="font-black uppercase w-24 text-blue-500 truncate text-sm sm:text-base" title={game.category}>{game.category}</span>
+                                        <span className="text-yellow-500 font-bold w-20 text-sm sm:text-base">{game.points} pkt</span>
+                                        <span className="text-gray-400 text-xs sm:text-sm">{game.correct}/{game.total}</span>
+                                    </div>
 
-                                    <div className="flex-1 h-3 bg-gray-800 rounded-full overflow-hidden ml-4">
+                                    <div className="flex-1 h-2 sm:h-3 bg-gray-800 rounded-full overflow-hidden w-full sm:w-auto">
                                         <div
                                             className="h-full rounded-full bg-blue-500"
                                             style={{ width: `${game.total > 0 ? (game.correct / game.total) * 100 : 0}%` }}

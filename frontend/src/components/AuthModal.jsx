@@ -42,15 +42,15 @@ export default function AuthModal({ activeModal, setActiveModal }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-gray-900 border-2 border-green-500/50 p-10 w-full max-w-md rounded-[32px] relative shadow-[0_0_50px_rgba(34,197,94,0.2)]">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-md animate-in fade-in duration-300 p-4">
+            <div className="bg-gray-900 border-2 border-green-500/50 p-6 sm:p-10 w-full max-w-md rounded-2xl sm:rounded-[32px] relative shadow-[0_0_50px_rgba(34,197,94,0.2)]">
                 <button
                     onClick={() => setActiveModal(null)}
-                    className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors"
+                    className="absolute top-4 right-4 sm:top-6 sm:right-6 text-gray-500 hover:text-white transition-colors"
                 >
                     <X size={28} />
                 </button>
-                <h2 className="text-4xl font-black mb-8 text-white uppercase italic">
+                <h2 className="text-3xl sm:text-4xl font-black mb-6 sm:mb-8 text-white uppercase italic">
                     {activeModal === 'login' ? 'Witaj ponownie' : 'Nowe konto'}
                 </h2>
                 <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
@@ -74,7 +74,7 @@ export default function AuthModal({ activeModal, setActiveModal }) {
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="mt-6 bg-green-500 text-black font-black py-4 rounded-xl text-xl hover:bg-green-400 transition-all shadow-[0_10px_20px_rgba(34,197,94,0.3)] disabled:opacity-50"
+                        className="mt-4 sm:mt-6 bg-green-500 text-black font-black py-4 rounded-xl text-lg sm:text-xl hover:bg-green-400 transition-all shadow-[0_10px_20px_rgba(34,197,94,0.3)] disabled:opacity-50"
                     >
                         {loading ? 'CZEKAJ...' : (activeModal === 'login' ? 'GRAJ' : 'DOŁĄCZ')}
                     </button>
