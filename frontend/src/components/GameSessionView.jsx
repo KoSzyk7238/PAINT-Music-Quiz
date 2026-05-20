@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Pause, X, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, X, Volume2, VolumeX, ChevronRight } from 'lucide-react';
 
 export default function GameSessionView({
     currentQuiz,
@@ -192,7 +192,7 @@ export default function GameSessionView({
                     </div>
                 )}
                 
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative">
+                <div className="flex flex-row items-stretch gap-3 w-full relative">
                     <div className="flex-1 relative">
                         <input
                             type="text"
@@ -201,7 +201,7 @@ export default function GameSessionView({
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={handleKeyDown}
                             disabled={isSubmitting}
-                            className="w-full bg-gray-900/80 border-2 border-gray-700 text-white p-4 sm:p-5 text-lg sm:text-2xl rounded-xl sm:rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all z-20 disabled:opacity-50"
+                            className="w-full bg-gray-900/80 border-2 border-gray-700 text-white p-4 sm:p-5 text-lg sm:text-2xl rounded-xl sm:rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all z-20 disabled:opacity-50 h-full"
                         />
                         
                         {showSuggestions && (
@@ -236,11 +236,42 @@ export default function GameSessionView({
                     </div>
                     
                     <button
-                        onClick={() => handleAnswerSubmit(inputValue)}
-                        disabled={isSubmitting}
-                        className="py-4 sm:py-0 px-8 bg-green-500 text-black font-black text-lg sm:text-xl rounded-xl sm:rounded-2xl hover:bg-green-400 transition-all shadow-[0_10px_20px_rgba(34,197,94,0.3)] z-20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => {
+                            if (feedback) {
+                                proceedToNextStep();
+                            } else {
+                                if (inputValue.trim() === '') {
+                                    handleAnswerSubmit('');
+                                } else {
+                                    handleAnswerSubmit(inputValue);
+                                }
+                            }
+                        }}
+                        disabled={isSubmitting && !feedback}
+                        className={`flex items-center justify-center rounded-xl sm:rounded-2xl font-black text-lg transition-all z-20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 aspect-square sm:aspect-auto sm:px-8 h-auto border-2 ${
+                            feedback 
+                              ? 'bg-white text-black hover:bg-gray-200 border-white shadow-[0_4px_15px_rgba(255,255,255,0.3)]' 
+                              : inputValue.trim() === ''
+                                ? 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700/80 hover:border-gray-600'
+                                : 'bg-green-500 border-green-500 text-black hover:bg-green-400 shadow-[0_10px_20px_rgba(34,197,94,0.3)]'
+                        }`}
+                        title={
+                            feedback 
+                              ? "Dalej" 
+                              : inputValue.trim() === ''
+                                ? "Pomiń utwór"
+                                : "Zatwierdź odpowiedź"
+                        }
                     >
-                        ZATWIERDŹ
+                        <ChevronRight size={24} className="w-6 h-6 sm:w-8 sm:h-8" />
+                        <span className="hidden sm:inline ml-2 uppercase tracking-wider">
+                            {feedback 
+                              ? "Dalej" 
+                              : inputValue.trim() === ''
+                                ? "Pomiń"
+                                : "Zatwierdź"
+                            }
+                        </span>
                     </button>
                 </div>
             </div>

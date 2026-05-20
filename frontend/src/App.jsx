@@ -427,6 +427,13 @@ function GameView() {
                  setSessionPoints(prev => prev + data.points_awarded);
                  setFeedback({ type: 'success', text: `DOBRZE! +${data.points_awarded} PKT` });
 
+                 if (audioRef.current) {
+                     audioRef.current.currentTime = 0;
+                     audioRef.current.play().then(() => {
+                         setIsPlaying(true);
+                     }).catch(e => console.error("Audio resume error:", e));
+                 }
+
                  if (nextQuestionTimeoutRef.current) {
                      clearTimeout(nextQuestionTimeoutRef.current);
                  }
@@ -454,6 +461,15 @@ function GameView() {
                      correctTitle: question?.song?.title,
                      correctArtist: question?.song?.artist
                  });
+
+                 if (audioRef.current) {
+                     if (audioRef.current.paused || audioRef.current.ended) {
+                         audioRef.current.currentTime = 0;
+                     }
+                     audioRef.current.play().then(() => {
+                         setIsPlaying(true);
+                     }).catch(e => console.error("Audio resume error:", e));
+                 }
              }
         } else {
             setIsSubmitting(false); // Odblokowujemy w razie błędu serwera
