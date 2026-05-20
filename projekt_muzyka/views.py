@@ -21,6 +21,7 @@ from .models import (
 from .serializers import (
     GenreSerializer,
     SongSerializer,
+    QuizListSerializer,
     QuizSerializer,
     QuestionSerializer,
     AnswerSerializer,
@@ -224,13 +225,19 @@ class SongList(generics.ListCreateAPIView):
     serializer_class = SongSerializer
 
     def get_queryset(self):
-        queryset = Song.objects.all()
+        queryset = Song.objects.select_related('genre').all()
         genre_id = self.request.query_params.get("genre_id")
         if genre_id:
             queryset = queryset.filter(genre_id=genre_id)
         search = self.request.query_params.get("search")
         if search:
             queryset = queryset.filter(Q(title__icontains=search) | Q(artist__icontains=search))
+        limit = self.request.query_params.get("limit")
+        if limit:
+            try:
+                queryset = queryset[:int(limit)]
+            except ValueError:
+                pass
         return queryset
 
 
@@ -239,11 +246,15 @@ class SongDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SongSerializer
 
 class QuizList(generics.ListCreateAPIView):
-    queryset = Quiz.objects.prefetch_related('sessions', 'sessions__attempts', 'questions', 'questions__answers', 'genre').all()
-    serializer_class = QuizSerializer
+    serializer_class = QuizListSerializer
+
+    def get_queryset(self):
+        return Quiz.objects.select_related('genre').annotate(
+            questions_count=Count('questions', distinct=True)
+        ).all()
 
 class QuizDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Quiz.objects.prefetch_related('sessions', 'sessions__attempts', 'questions', 'questions__answers', 'genre').all()
+    queryset = Quiz.objects.prefetch_related('sessions', 'sessions__attempts', 'questions', 'questions__answers', 'questions__song', 'questions__song__genre', 'genre').all()
     serializer_class = QuizSerializer
 
 class QuestionList(generics.ListCreateAPIView):

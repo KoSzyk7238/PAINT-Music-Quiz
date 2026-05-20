@@ -9,6 +9,7 @@ export default function HomeView({
     selectedCategory,
     setSelectedCategory,
     quizzes,
+    isLoading,
     startSession
 }) {
     const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
@@ -68,6 +69,53 @@ export default function HomeView({
 
     const isFiltered = searchQuery || selectedCategory !== 'Wszystkie';
 
+    const renderSkeletonCard = (index) => (
+        <div 
+            key={`skeleton-card-${index}`} 
+            className="w-full rounded-2xl border border-white/5 bg-gray-950 overflow-hidden"
+        >
+            <div className="aspect-[16/10] bg-gray-900/40 animate-pulse relative w-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
+            </div>
+            <div className="p-5 flex flex-col justify-between">
+                <div>
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="bg-gray-900/60 h-4 w-10 rounded animate-pulse"></div>
+                        <div className="bg-gray-900/60 h-4 w-24 rounded animate-pulse"></div>
+                    </div>
+                    <div className="bg-gray-900/60 h-5 w-2/3 rounded animate-pulse mb-3"></div>
+                    <div className="bg-gray-900/60 h-3 w-full rounded animate-pulse mb-1.5"></div>
+                    <div className="bg-gray-900/60 h-3 w-5/6 rounded animate-pulse"></div>
+                </div>
+                
+                <div className="flex justify-between items-center mt-6 pt-3 border-t border-white/5">
+                    <div className="bg-gray-900/60 h-3.5 w-14 rounded animate-pulse"></div>
+                    <div className="bg-gray-900/60 h-3.5 w-16 rounded animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderSkeletonHero = () => (
+        <div className="relative w-full h-[320px] sm:h-[400px] rounded-3xl overflow-hidden border border-white/5 bg-gray-950/40 shadow-2xl flex items-end p-6 sm:p-12 md:p-12 animate-pulse">
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/30 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-950/90 via-transparent to-transparent"></div>
+            <div className="relative z-10 max-w-2xl text-left w-full">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="h-5 w-32 bg-gray-900/80 rounded-md"></div>
+                    <div className="h-5 w-20 bg-gray-900/80 rounded-md"></div>
+                </div>
+                <div className="h-10 w-2/3 bg-gray-900/80 rounded mb-4"></div>
+                <div className="h-4 w-full bg-gray-900/80 rounded mb-2"></div>
+                <div className="h-4 w-5/6 bg-gray-900/80 rounded mb-6"></div>
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-36 bg-gray-900/80 rounded-xl"></div>
+                    <div className="h-4 w-28 bg-gray-900/80 rounded"></div>
+                </div>
+            </div>
+        </div>
+    );
+
     const renderQuizCard = (quiz) => {
         const coverUrl = getFullCoverUrl(quiz.cover_image);
         const placeholderGrad = getPlaceholderGradient(quiz.title);
@@ -122,7 +170,7 @@ export default function HomeView({
                             <span className={`text-[10px] font-black uppercase tracking-wider ${
                                 quiz.difficulty === 'EASY' ? 'text-green-400' : quiz.difficulty === 'HARD' ? 'text-red-400' : 'text-yellow-400'
                             }`}>
-                                {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'} &bull; {pytaniaPlural(Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
+                                {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'} &bull; {pytaniaPlural(Math.min(quiz.questions_count || quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
                             </span>
                         </div>
                         {coverUrl && (
@@ -137,7 +185,7 @@ export default function HomeView({
                     
                     <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4 pt-3 border-t border-white/5">
                         <span className="flex items-center gap-1">
-                            <Music size={12}/> {pytaniaPlural(Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
+                            <Music size={12}/> {pytaniaPlural(Math.min(quiz.questions_count || quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
                         </span>
                         <span>
                             Graj teraz &rarr;
@@ -147,6 +195,56 @@ export default function HomeView({
             </div>
         );
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col w-full max-w-7xl mx-auto pb-24 px-4 animate-in fade-in duration-300">
+                <style>{`
+                    .no-scrollbar::-webkit-scrollbar {
+                        display: none;
+                    }
+                    .no-scrollbar {
+                        -ms-overflow-style: none;
+                        scrollbar-width: none;
+                    }
+                `}</style>
+
+                {/* Nagłówek z wyszukiwarką */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+                    <div>
+                        <h1 className="text-4xl md:text-5xl font-black text-gray-800 tracking-tight uppercase italic flex items-center gap-3">
+                            <Flame className="text-gray-800" size={36} fill="currentColor" />
+                            Jaki to sygnał?
+                        </h1>
+                        <div className="h-4 w-64 bg-gray-900/60 rounded mt-2 animate-pulse"></div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-stretch md:items-center">
+                        <div className="h-11 w-full md:w-80 bg-gray-900/60 rounded-xl animate-pulse"></div>
+                        <div className="h-11 w-44 bg-gray-900/60 rounded-xl animate-pulse"></div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-12">
+                    {renderSkeletonHero()}
+
+                    <div className="flex flex-col gap-4">
+                        <div className="h-6 w-44 bg-gray-900/60 rounded animate-pulse mb-2"></div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4 pb-4">
+                            {[1, 2, 3, 4].map(renderSkeletonCard)}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                        <div className="h-6 w-60 bg-gray-900/60 rounded animate-pulse mb-2"></div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4 pb-4">
+                            {[5, 6, 7, 8].map(renderSkeletonCard)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col w-full max-w-7xl mx-auto pb-24 px-4">
@@ -301,7 +399,7 @@ export default function HomeView({
                                                         Zagraj teraz
                                                     </button>
                                                     <div className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-widest">
-                                                        Pytania: {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)} &bull; {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'}
+                                                        Pytania: {Math.min(quiz.questions_count || quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)} &bull; {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'}
                                                     </div>
                                                 </div>
                                             </div>

@@ -92,6 +92,25 @@ class QuestionSerializer(serializers.ModelSerializer):
         except ValueError:
             return None
 
+class QuizListSerializer(serializers.ModelSerializer):
+    genre = GenreSerializer(read_only=True)
+    questions_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Quiz
+        fields = [
+            'id',
+            'title',
+            'description',
+            'cover_image',
+            'genre',
+            'difficulty',
+            'num_questions_to_ask',
+            'created_at',
+            'questions_count',
+        ]
+
+
 class QuizSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)
     genre = GenreSerializer(read_only=True)

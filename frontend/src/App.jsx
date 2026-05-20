@@ -47,9 +47,11 @@ function GameView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [quizzes, setQuizzes] = useState([]);
+  const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
+  const [isLoadingQuizDetail, setIsLoadingQuizDetail] = useState(false);
+  const [dbSuggestions, setDbSuggestions] = useState([]);
   const [currentQuiz, setCurrentQuiz] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [songsDatabase, setSongsDatabase] = useState([]);
   const [sessionId, setSessionId] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
@@ -99,6 +101,7 @@ function GameView() {
 
     const fetchQuizzes = async () => {
       try {
+        setIsLoadingQuizzes(true);
         const res = await fetch('/api/quizzes/');
         if (res.ok) {
           const data = await res.json();
@@ -116,49 +119,50 @@ function GameView() {
       } catch (err) {
         console.error(err);
         setApiDebug(`Błąd sieci: ${err.message}`);
+      } finally {
+        setIsLoadingQuizzes(false);
       }
     };
 
-    const fetchSongs = async () => {
-        try {
-            const res = await fetch('/api/songs/');
-            if (res.ok) {
-                const data = await res.json();
-                if (Array.isArray(data)) {
-                    const uniqueSongs = [];
-                    const seen = new Set();
-                    data.forEach(s => {
-                        if (s.title && !seen.has(s.title.toLowerCase())) {
-                            seen.add(s.title.toLowerCase());
-                            uniqueSongs.push({ title: s.title, artist: s.artist || '' });
-                        }
-                    });
-                    setSongsDatabase(uniqueSongs);
-                } else if (data && Array.isArray(data.results)) {
-                    const uniqueSongs = [];
-                    const seen = new Set();
-                    data.results.forEach(s => {
-                        if (s.title && !seen.has(s.title.toLowerCase())) {
-                            seen.add(s.title.toLowerCase());
-                            uniqueSongs.push({ title: s.title, artist: s.artist || '' });
-                        }
-                    });
-                    setSongsDatabase(uniqueSongs);
-                }
-            }
-        } catch(err) {
-            console.error(err);
-        }
-    }
-
     fetchProfile();
     fetchQuizzes();
-    fetchSongs();
   }, []);
 
   // Reset indeksu podpowiedzi przy zmianie tekstu
   useEffect(() => {
       setActiveSuggestionIndex(-1);
+  }, [inputValue]);
+
+  // Dynamic fetching of suggestions as the user types (with debounce)
+  useEffect(() => {
+    if (!inputValue || inputValue.trim().length < 2) {
+      setDbSuggestions([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/songs/?search=${encodeURIComponent(inputValue)}&limit=10`);
+        if (res.ok) {
+          const data = await res.json();
+          const songsList = Array.isArray(data) ? data : (data?.results || []);
+          
+          const formattedSongs = [];
+          const seen = new Set();
+          songsList.forEach(s => {
+            if (s.title && !seen.has(s.title.toLowerCase())) {
+              seen.add(s.title.toLowerCase());
+              formattedSongs.push({ title: s.title, artist: s.artist || '' });
+            }
+          });
+          setDbSuggestions(formattedSongs);
+        }
+      } catch (err) {
+        console.error("Error fetching suggestions:", err);
+      }
+    }, 250); // 250ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
   }, [inputValue]);
 
   const shuffleArray = (array) => {
@@ -170,6 +174,24 @@ function GameView() {
     return newArr;
   }
 
+  const handleSelectQuizForPreview = async (quiz) => {
+    setSelectedQuizForPreview(quiz);
+    setIsLoadingQuizDetail(true);
+    try {
+      const res = await fetch(`/api/quizzes/${quiz.id}/`);
+      if (res.ok) {
+        const detailedQuiz = await res.json();
+        setSelectedQuizForPreview(detailedQuiz);
+      } else {
+        console.error("Failed to load quiz details");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingQuizDetail(false);
+    }
+  };
+
   const startSession = async (quiz) => {
     if (nextQuestionTimeoutRef.current) {
         clearTimeout(nextQuestionTimeoutRef.current);
@@ -177,10 +199,31 @@ function GameView() {
     }
     setFeedback(null);
 
-    const shuffledQuestions = shuffleArray(quiz.questions || []);
-    const limit = quiz.num_questions_to_ask || 10;
+    let fullQuiz = quiz;
+    if (!fullQuiz.questions) {
+      setIsLoadingQuizDetail(true);
+      try {
+        const res = await fetch(`/api/quizzes/${quiz.id}/`);
+        if (res.ok) {
+          fullQuiz = await res.json();
+        } else {
+          console.error("Failed to fetch quiz detail in startSession");
+          setIsLoadingQuizDetail(false);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+        setIsLoadingQuizDetail(false);
+        return;
+      } finally {
+        setIsLoadingQuizDetail(false);
+      }
+    }
+
+    const shuffledQuestions = shuffleArray(fullQuiz.questions || []);
+    const limit = fullQuiz.num_questions_to_ask || 10;
     const limitedQuestions = shuffledQuestions.slice(0, limit);
-    const quizWithShuffled = { ...quiz, questions: limitedQuestions };
+    const quizWithShuffled = { ...fullQuiz, questions: limitedQuestions };
 
     setCurrentQuiz(quizWithShuffled);
     setCurrentQuestionIndex(0);
@@ -190,26 +233,11 @@ function GameView() {
     setSessionStreak(0); // Reset lokalnego streaka
     setSessionPoints(0); // Reset lokalnych punktów
 
-    // Zadanie 5: Dynamiczne podpowiedzi autouzupełniania z utworów z tego quizu
-    const quizSongs = limitedQuestions
-        .map(q => q.song)
-        .filter(s => s && s.title);
-    
-    setSongsDatabase(prev => {
-        const newSongs = [...prev];
-        quizSongs.forEach(song => {
-            if (!newSongs.some(s => s.title.toLowerCase() === song.title.toLowerCase())) {
-                newSongs.push({ title: song.title, artist: song.artist || '' });
-            }
-        });
-        return newSongs;
-    });
-
     try {
       const res = await fetch('/api/sessions/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quiz: quiz.id })
+        body: JSON.stringify({ quiz: fullQuiz.id })
       });
       if (res.ok) {
         const data = await res.json();
@@ -473,11 +501,11 @@ function GameView() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [feedback, currentQuestionIndex, currentQuiz, sessionId, isPlaying, inputValue, sessionSummary]);
 
-  const filteredSuggestions = songsDatabase.filter(song => {
-      const q = inputValue.toLowerCase();
-      return (song.title && song.title.toLowerCase().includes(q)) ||
-             (song.artist && song.artist.toLowerCase().includes(q));
-  });
+  // Suggestions from the database query (spoiler-free: searching the whole database, not revealing quiz contents)
+  const filteredSuggestions = React.useMemo(() => {
+    if (!inputValue) return [];
+    return dbSuggestions;
+  }, [dbSuggestions, inputValue]);
 
   const question = currentQuiz?.questions?.[currentQuestionIndex];
   
@@ -605,7 +633,8 @@ function GameView() {
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 quizzes={quizzes}
-                startSession={(quiz) => setSelectedQuizForPreview(quiz)}
+                isLoading={isLoadingQuizzes}
+                startSession={handleSelectQuizForPreview}
              />
           ) : (
               <GameSessionView 
@@ -711,7 +740,7 @@ function GameView() {
                       </span>
                       <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider flex items-center gap-1">
                         <Music size={11} />
-                        {pytaniaPlural(Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
+                        {pytaniaPlural(Math.min(quiz.questions_count || quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
                       </span>
                     </div>
 
@@ -730,36 +759,65 @@ function GameView() {
                         Statystyki społeczności
                       </h4>
                       
-                      <div className="grid grid-cols-2 gap-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        <div>
-                           <span className="text-[10px] text-gray-500 block mb-1">Rozegrane gry</span>
-                           <span className="text-white text-base font-black flex items-center gap-1">
-                             <Play size={14} className="text-green-400" fill="currentColor" /> {stats.total_plays}
-                           </span>
+                      {isLoadingQuizDetail ? (
+                        <div className="grid grid-cols-2 gap-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          <div>
+                             <span className="text-[10px] text-gray-500 block mb-1">Rozegrane gry</span>
+                             <span className="text-white text-base font-black flex items-center gap-1">
+                               <div className="h-5 w-12 bg-gray-800/50 rounded animate-pulse"></div>
+                             </span>
+                          </div>
+                          <div>
+                             <span className="text-[10px] text-gray-500 block mb-1">Statystyczny wynik</span>
+                             <span className="text-white text-base font-black flex items-center gap-1">
+                               <div className="h-5 w-16 bg-gray-800/50 rounded animate-pulse"></div>
+                             </span>
+                          </div>
+                          <div>
+                             <span className="text-[10px] text-gray-500 block mb-1">Średni czas</span>
+                             <span className="text-white text-base font-black flex items-center gap-1">
+                               <div className="h-5 w-12 bg-gray-800/50 rounded animate-pulse"></div>
+                             </span>
+                          </div>
+                          <div>
+                             <span className="text-[10px] text-gray-500 block mb-1">Dynamiczna trudność</span>
+                             <span className="text-white text-base font-black flex items-center gap-1">
+                               <div className="h-5 w-16 bg-gray-800/50 rounded animate-pulse"></div>
+                             </span>
+                          </div>
                         </div>
-                        <div>
-                           <span className="text-[10px] text-gray-500 block mb-1">Statystyczny wynik</span>
-                           <span className="text-white text-base font-black flex items-center gap-1">
-                             <Sparkles size={14} className="text-yellow-400" /> 
-                             {stats.total_plays > 0 ? `${stats.average_score_percent}%` : 'Brak danych'}
-                           </span>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          <div>
+                             <span className="text-[10px] text-gray-500 block mb-1">Rozegrane gry</span>
+                             <span className="text-white text-base font-black flex items-center gap-1">
+                               <Play size={14} className="text-green-400" fill="currentColor" /> {stats.total_plays}
+                             </span>
+                          </div>
+                          <div>
+                             <span className="text-[10px] text-gray-500 block mb-1">Statystyczny wynik</span>
+                             <span className="text-white text-base font-black flex items-center gap-1">
+                               <Sparkles size={14} className="text-yellow-400" /> 
+                               {stats.total_plays > 0 ? `${stats.average_score_percent}%` : 'Brak danych'}
+                             </span>
+                          </div>
+                          <div>
+                             <span className="text-[10px] text-gray-500 block mb-1">Średni czas</span>
+                             <span className="text-white text-base font-black flex items-center gap-1">
+                               <Clock size={14} className="text-blue-400" /> 
+                               {stats.total_plays > 0 ? `${stats.average_time_seconds} s` : 'Brak danych'}
+                             </span>
+                          </div>
+                          <div>
+                             <span className="text-[10px] text-gray-500 block mb-1">Dynamiczna trudność</span>
+                             <span className={`text-base font-black flex items-center gap-1 ${
+                               stats.dynamic_difficulty === 'Łatwy' ? 'text-green-400' : stats.dynamic_difficulty === 'Trudny' ? 'text-red-400' : 'text-yellow-400'
+                             }`}>
+                               <Trophy size={14} /> {stats.dynamic_difficulty}
+                             </span>
+                          </div>
                         </div>
-                        <div>
-                           <span className="text-[10px] text-gray-500 block mb-1">Średni czas</span>
-                           <span className="text-white text-base font-black flex items-center gap-1">
-                             <Clock size={14} className="text-blue-400" /> 
-                             {stats.total_plays > 0 ? `${stats.average_time_seconds} s` : 'Brak danych'}
-                           </span>
-                        </div>
-                        <div>
-                           <span className="text-[10px] text-gray-500 block mb-1">Dynamiczna trudność</span>
-                           <span className={`text-base font-black flex items-center gap-1 ${
-                             stats.dynamic_difficulty === 'Łatwy' ? 'text-green-400' : stats.dynamic_difficulty === 'Trudny' ? 'text-red-400' : 'text-yellow-400'
-                           }`}>
-                             <Trophy size={14} /> {stats.dynamic_difficulty}
-                           </span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
 
@@ -769,10 +827,24 @@ function GameView() {
                         startSession(quiz);
                         setSelectedQuizForPreview(null);
                       }}
-                      className="flex-grow bg-green-500 hover:bg-green-400 text-black font-black uppercase tracking-wider py-4 rounded-2xl transition-all shadow-[0_0_30px_rgba(34,197,94,0.35)] flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                      disabled={isLoadingQuizDetail}
+                      className={`flex-grow font-black uppercase tracking-wider py-4 rounded-2xl transition-all flex items-center justify-center gap-2 ${
+                        isLoadingQuizDetail 
+                          ? 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50' 
+                          : 'bg-green-500 hover:bg-green-400 text-black shadow-[0_0_30px_rgba(34,197,94,0.35)] hover:scale-[1.02] active:scale-[0.98]'
+                      }`}
                     >
-                      <Play fill="black" size={18} />
-                      Rozpocznij grę
+                      {isLoadingQuizDetail ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-gray-600 border-t-green-500 rounded-full animate-spin"></div>
+                          Wczytywanie...
+                        </>
+                      ) : (
+                        <>
+                          <Play fill="black" size={18} />
+                          Rozpocznij grę
+                        </>
+                      )}
                     </button>
                     <button 
                       onClick={() => setSelectedQuizForPreview(null)}
