@@ -124,6 +124,40 @@ function GameView() {
     });
   };
 
+  const fadeOutAudio = (onComplete) => {
+    if (!audioRef.current) { onComplete?.(); return; }
+    const currentVol = audioRef.current.volume;
+    if (currentVol === 0) { audioRef.current.pause(); onComplete?.(); return; }
+    
+    clearAudioFade();
+    
+    const duration = 700; // czas wyciszania (ms)
+    const stepTime = 25;
+    const steps = duration / stepTime;
+    let step = 0;
+    
+    audioFadeIntervalRef.current = setInterval(() => {
+        step++;
+        const progress = step / steps;
+        // Kwadratowe ease-out dla naturalnego wyciszenia
+        const newVol = currentVol * (1 - progress) * (1 - progress);
+        
+        if (audioRef.current) {
+            audioRef.current.volume = Math.max(newVol, 0);
+        }
+        
+        if (step >= steps) {
+            clearAudioFade();
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.volume = volume * volume;
+            }
+            setIsPlaying(false);
+            onComplete?.();
+        }
+    }, stepTime);
+  };
+
   useEffect(() => {
     if (audioRef.current && !audioFadeIntervalRef.current) {
       audioRef.current.volume = volume * volume;
@@ -444,14 +478,22 @@ function GameView() {
         clearTimeout(nextQuestionTimeoutRef.current);
         nextQuestionTimeoutRef.current = null;
     }
-    setFeedback(null);
     
-    const nextIndex = currentQuestionIndex + 1;
-    if (nextIndex < currentQuiz.questions.length) {
-        setCurrentQuestionIndex(nextIndex);
-        setupQuestion(currentQuiz.questions[nextIndex]);
+    const doTransition = () => {
+        setFeedback(null);
+        const nextIndex = currentQuestionIndex + 1;
+        if (nextIndex < currentQuiz.questions.length) {
+            setCurrentQuestionIndex(nextIndex);
+            setupQuestion(currentQuiz.questions[nextIndex]);
+        } else {
+            finishSession();
+        }
+    };
+
+    if (isPlaying && audioRef.current && !audioRef.current.paused) {
+        fadeOutAudio(doTransition);
     } else {
-        finishSession();
+        doTransition();
     }
   };
 
@@ -494,17 +536,21 @@ function GameView() {
                  const nextIndex = currentQuestionIndex + 1;
                  if (nextIndex < currentQuiz.questions.length) {
                      nextQuestionTimeoutRef.current = setTimeout(() => {
-                         setFeedback(null);
-                         setCurrentQuestionIndex(nextIndex);
-                         setupQuestion(currentQuiz.questions[nextIndex]);
+                         fadeOutAudio(() => {
+                             setFeedback(null);
+                             setCurrentQuestionIndex(nextIndex);
+                             setupQuestion(currentQuiz.questions[nextIndex]);
+                         });
                          nextQuestionTimeoutRef.current = null;
-                     }, 2500);
+                     }, 4000);
                  } else {
                      nextQuestionTimeoutRef.current = setTimeout(() => {
-                         setFeedback(null);
-                         finishSession();
+                         fadeOutAudio(() => {
+                             setFeedback(null);
+                             finishSession();
+                         });
                          nextQuestionTimeoutRef.current = null;
-                     }, 2500);
+                     }, 4000);
                  }
              } else {
                  setSessionStreak(0);
