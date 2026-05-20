@@ -426,7 +426,15 @@ function GameView() {
                 audioRef.current.src = finalSrc;
                 audioRef.current.load();
             }
-            fadeInAudio();
+            clearAudioFade();
+            audioRef.current.volume = volume * volume;
+            audioRef.current.play().then(() => {
+                setIsPlaying(true);
+            }).catch(e => {
+                console.error("Audio play error", e);
+                setAudioDebug(`Błąd odtwarzania (sprawdź format pliku lub połączenie z portem 8000): ${e.message}`);
+                setIsPlaying(false);
+            });
         }
     }
   };
@@ -934,7 +942,12 @@ function GameView() {
                   onClick={() => {
                     setShowQuitConfirmation(false);
                     if (wasPlayingBeforeQuitConfirm) {
-                      fadeInAudio();
+                      setIsPlaying(true);
+                      clearAudioFade();
+                      if (audioRef.current) {
+                          audioRef.current.volume = volume * volume;
+                          audioRef.current.play().catch(e => console.error("Auto-resume failed:", e));
+                      }
                     }
                   }}
                   className="flex-grow bg-gray-900 hover:bg-gray-800 text-white font-black uppercase tracking-wider py-3.5 rounded-xl border border-gray-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
