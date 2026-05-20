@@ -160,7 +160,7 @@ function GameView() {
       } catch (err) {
         console.error("Error fetching suggestions:", err);
       }
-    }, 250); // 250ms debounce
+    }, 100); // 100ms debounce (near-instant feedback)
 
     return () => clearTimeout(delayDebounceFn);
   }, [inputValue]);
@@ -601,7 +601,7 @@ function GameView() {
                     <span>streak:</span>
                     <span className="text-white font-bold text-xl sm:text-3xl">{sessionStreak}</span>
                   </div>
-                  <div className="px-4 py-1.5 sm:px-6 sm:py-2 border-2 border-gray-700 bg-gray-900/50 rounded-full truncate max-w-[200px] sm:max-w-xs shadow-lg">
+                  <div className="px-4 py-1.5 sm:px-6 sm:py-2 border-2 border-gray-700 bg-gray-900/50 rounded-full shadow-lg whitespace-nowrap min-w-fit">
                     gatunek: <span className="text-green-500 font-black">{currentCategoryName}</span>
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3">

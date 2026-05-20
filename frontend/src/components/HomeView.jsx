@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Star, Music, ChevronRight, Play, Flame, Trophy, Clock, Sparkles } from 'lucide-react';
+import { Search, Star, Music, ChevronLeft, ChevronRight, Play, Flame, Trophy, Clock, Sparkles } from 'lucide-react';
 import { pytaniaPlural } from '../utils/plurals';
 
 export default function HomeView({
@@ -23,7 +23,38 @@ export default function HomeView({
         return () => clearInterval(interval);
     }, [heroQuizzes.length]);
 
+    const categoriesRef = React.useRef(null);
+    const [showLeftArrow, setShowLeftArrow] = React.useState(false);
+    const [showRightArrow, setShowRightArrow] = React.useState(false);
+
     const allCategories = ['Wszystkie', ...new Set(quizzes.map(q => q.genre?.name).filter(Boolean))];
+
+    const checkScroll = () => {
+        if (categoriesRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = categoriesRef.current;
+            setShowLeftArrow(scrollLeft > 5);
+            setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 5);
+        }
+    };
+
+    React.useEffect(() => {
+        const timer = setTimeout(checkScroll, 100);
+        window.addEventListener('resize', checkScroll);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', checkScroll);
+        };
+    }, [allCategories.length, isLoading]);
+
+    const scrollCategories = (direction) => {
+        if (categoriesRef.current) {
+            const scrollAmount = 200;
+            categoriesRef.current.scrollBy({
+                left: direction === 'left' ? -scrollAmount : scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    };
 
     // Helper for media URLs
     const getFullCoverUrl = (url) => {
@@ -210,7 +241,7 @@ export default function HomeView({
                 `}</style>
 
                 {/* Nagłówek z wyszukiwarką */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                     <div>
                         <h1 className="text-4xl md:text-5xl font-black text-gray-800 tracking-tight uppercase italic flex items-center gap-3">
                             <Flame className="text-gray-800" size={36} fill="currentColor" />
@@ -219,10 +250,17 @@ export default function HomeView({
                         <div className="h-4 w-64 bg-gray-900/60 rounded mt-2 animate-pulse"></div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-stretch md:items-center">
-                        <div className="h-11 w-full md:w-80 bg-gray-900/60 rounded-xl animate-pulse"></div>
-                        <div className="h-11 w-44 bg-gray-900/60 rounded-xl animate-pulse"></div>
-                    </div>
+                    <div className="relative w-full md:w-80 h-11 bg-gray-900/60 rounded-xl animate-pulse"></div>
+                </div>
+
+                {/* Pasek gatunków - szkielet szeroki na całą stronę */}
+                <div className="relative w-full mb-12 bg-gray-900/40 p-2 rounded-2xl border border-gray-850/60 h-14 animate-pulse flex gap-2 items-center overflow-hidden">
+                    <div className="h-8 w-24 bg-gray-900/60 rounded-xl"></div>
+                    <div className="h-8 w-20 bg-gray-900/60 rounded-xl"></div>
+                    <div className="h-8 w-28 bg-gray-900/60 rounded-xl"></div>
+                    <div className="h-8 w-16 bg-gray-900/60 rounded-xl"></div>
+                    <div className="h-8 w-32 bg-gray-900/60 rounded-xl"></div>
+                    <div className="h-8 w-24 bg-gray-900/60 rounded-xl"></div>
                 </div>
 
                 <div className="flex flex-col gap-12">
@@ -266,7 +304,7 @@ export default function HomeView({
             )}
 
             {/* Nagłówek z wyszukiwarką */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                 <div>
                     <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase italic flex items-center gap-3">
                         <Flame className="text-green-500 animate-pulse" size={36} fill="currentColor" />
@@ -275,36 +313,61 @@ export default function HomeView({
                     <p className="text-gray-400 text-sm mt-1">Wybierz quiz, posłuchaj dźwięków i zgadnij tytuł utworu!</p>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-stretch md:items-center">
-                    <div className="relative w-full md:w-80">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Search className="text-gray-500" size={18} />
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Szukaj quizu..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-gray-900/90 border border-gray-800 focus:border-green-500 text-white pl-11 pr-4 py-3 text-sm rounded-xl outline-none transition-all shadow-lg focus:ring-2 focus:ring-green-500/20"
-                        />
+                <div className="relative w-full md:w-80">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Search className="text-gray-500" size={18} />
                     </div>
-
-                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar items-center bg-gray-900/50 p-1.5 rounded-xl border border-gray-800/80">
-                        {allCategories.map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all ${
-                                    selectedCategory === cat 
-                                    ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
-                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                                }`}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
+                    <input
+                        type="text"
+                        placeholder="Szukaj quizu..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-gray-900/90 border border-gray-800 focus:border-green-500 text-white pl-11 pr-4 py-3 text-sm rounded-xl outline-none transition-all shadow-lg focus:ring-2 focus:ring-green-500/20"
+                    />
                 </div>
+            </div>
+
+            {/* Pasek gatunków - szeroki na całą stronę z przyciskami przewijania */}
+            <div className="relative w-full mb-12 group/categories">
+                {showLeftArrow && (
+                    <button 
+                        onClick={() => scrollCategories('left')}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-gray-400 p-2.5 rounded-full shadow-2xl transition-all duration-200 hover:scale-110 active:scale-95 animate-in fade-in duration-200"
+                        title="Przewiń w lewo"
+                    >
+                        <ChevronLeft size={16} />
+                    </button>
+                )}
+                
+                <div 
+                    ref={categoriesRef}
+                    onScroll={checkScroll}
+                    className="flex gap-2 overflow-x-auto no-scrollbar items-center bg-gray-900/40 p-2 rounded-2xl border border-gray-850/60 w-full scroll-smooth"
+                >
+                    {allCategories.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 ${
+                                selectedCategory === cat 
+                                ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105' 
+                                : 'text-gray-400 hover:text-white hover:bg-gray-800/50 hover:scale-102'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+
+                {showRightArrow && (
+                    <button 
+                        onClick={() => scrollCategories('right')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-gray-400 p-2.5 rounded-full shadow-2xl transition-all duration-200 hover:scale-110 active:scale-95 animate-in fade-in duration-200"
+                        title="Przewiń w prawo"
+                    >
+                        <ChevronRight size={16} />
+                    </button>
+                )}
             </div>
 
             {/* Widok filtrowany (Wyszukiwanie / Kategoria) */}
