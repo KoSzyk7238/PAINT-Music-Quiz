@@ -78,11 +78,58 @@ def home(request):
     return HttpResponse(html)
 
 
+def associate_session_with_user(user, session_id):
+    if not session_id:
+        return
+    try:
+        session = GameSession.objects.get(pk=session_id, user__isnull=True)
+        session.user = user
+        session.save(update_fields=["user"])
+
+        # Update or create UserScore
+        score, score_created = UserScore.objects.get_or_create(
+            session=session,
+            defaults={
+                "user": user,
+                "quiz": session.quiz,
+                "score": session.total_points,
+                "correct_count": session.correct_count,
+                "total_questions": session.total_questions,
+                "average_time_seconds": session.average_time_seconds,
+            }
+        )
+        if not score_created:
+            score.user = user
+            score.save(update_fields=["user"])
+
+        # Also update UserProfile stats
+        profile = get_or_create_profile(user)
+        profile.games_played += 1
+        
+        # Re-play attempts on the profile to accumulate stats
+        attempts = session.attempts.order_by('created_at')
+        for att in attempts:
+            profile.total_answers += 1
+            profile.total_time_seconds += att.time_taken_seconds
+            if att.is_correct:
+                profile.correct_answers += 1
+                profile.total_points += att.points_awarded
+                profile.current_streak += 1
+                profile.best_streak = max(profile.best_streak, profile.current_streak)
+            else:
+                profile.current_streak = 0
+                
+        profile.save()
+    except GameSession.DoesNotExist:
+        pass
+
+
 class RegisterView(APIView):
     def post(self, request, *args, **kwargs):
         username = request.data.get("username")
         password = request.data.get("password")
         display_name = request.data.get("display_name")
+        session_id = request.data.get("session_id")
 
         if not username or not password:
             return Response({"error": "Username i haslo sa wymagane."}, status=status.HTTP_400_BAD_REQUEST)
@@ -97,6 +144,8 @@ class RegisterView(APIView):
             profile.save(update_fields=["display_name"])
 
         login(request, user)
+        if session_id:
+            associate_session_with_user(user, session_id)
         return Response(UserPublicSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
@@ -104,6 +153,7 @@ class LoginView(APIView):
     def post(self, request, *args, **kwargs):
         username = request.data.get("username")
         password = request.data.get("password")
+        session_id = request.data.get("session_id")
 
         if not username or not password:
             return Response({"error": "Username i haslo sa wymagane."}, status=status.HTTP_400_BAD_REQUEST)
@@ -113,6 +163,8 @@ class LoginView(APIView):
             return Response({"error": "Niepoprawne dane logowania."}, status=status.HTTP_400_BAD_REQUEST)
 
         login(request, user)
+        if session_id:
+            associate_session_with_user(user, session_id)
         return Response(UserPublicSerializer(user).data)
 
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Play, Pause, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Pause, X, Volume2, VolumeX } from 'lucide-react';
 
 export default function GameSessionView({
     currentQuiz,
@@ -19,7 +19,9 @@ export default function GameSessionView({
     activeSuggestionIndex,
     setActiveSuggestionIndex,
     onQuit,
-    proceedToNextStep
+    proceedToNextStep,
+    volume,
+    setVolume
 }) {
     const question = currentQuiz?.questions?.[currentQuestionIndex];
     const totalTimeLimit = question?.time_limit || 30;
@@ -125,6 +127,29 @@ export default function GameSessionView({
                                 ></div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Volume */}
+                    <div className="flex items-center justify-center gap-2 mt-1 opacity-50 hover:opacity-100 transition-opacity duration-300">
+                        <button
+                            onClick={() => setVolume(prev => prev > 0 ? 0 : 0.5)}
+                            className="text-gray-500 hover:text-gray-300 transition-colors shrink-0"
+                            title={volume === 0 ? 'Włącz dźwięk' : 'Wycisz'}
+                        >
+                            {volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                        </button>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={volume}
+                            onChange={(e) => setVolume(parseFloat(e.target.value))}
+                            className="w-24 sm:w-32 h-1 bg-gray-700/60 rounded-full appearance-none cursor-pointer
+                                       [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-gray-400 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:hover:bg-green-400 [&::-webkit-slider-thumb]:transition-colors
+                                       [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-gray-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:hover:bg-green-400
+                                       [&::-moz-range-track]:bg-gray-700/60 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:h-1"
+                        />
                     </div>
                     
                     {audioDebug && (

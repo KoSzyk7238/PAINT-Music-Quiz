@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
-export default function AuthModal({ activeModal, setActiveModal }) {
+export default function AuthModal({ activeModal, setActiveModal, guestSessionId }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -16,13 +16,18 @@ export default function AuthModal({ activeModal, setActiveModal }) {
 
         const url = activeModal === 'login' ? '/api/auth/login/' : '/api/auth/register/';
 
+        const payload = { username, password };
+        if (guestSessionId) {
+            payload.session_id = guestSessionId;
+        }
+
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();

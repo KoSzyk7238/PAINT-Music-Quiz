@@ -69,6 +69,15 @@ function GameView() {
   const audioRef = useRef(null);
   const nextQuestionTimeoutRef = useRef(null);
 
+  const [volume, setVolume] = useState(0.5);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      // Logarithmic curve: slider position squared gives a natural-feeling volume
+      audioRef.current.volume = volume * volume;
+    }
+  }, [volume]);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -617,6 +626,8 @@ function GameView() {
                  setActiveSuggestionIndex={setActiveSuggestionIndex}
                  onQuit={handleQuitSession}
                  proceedToNextStep={proceedToNextStep}
+                 volume={volume}
+                 setVolume={setVolume}
               />
           )}
         </div>
@@ -630,6 +641,7 @@ function GameView() {
         <AuthModal
             activeModal={activeModal}
             setActiveModal={setActiveModal}
+            guestSessionId={sessionId}
         />
 
         {/* Intentional Quiz Entry Preview Popup */}
