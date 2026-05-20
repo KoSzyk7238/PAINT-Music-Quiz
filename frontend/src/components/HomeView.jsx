@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Star, Music, ChevronRight, Play, Flame, Trophy, Clock, Sparkles } from 'lucide-react';
+import { pytaniaPlural } from '../utils/plurals';
 
 export default function HomeView({
     apiDebug,
@@ -121,7 +122,7 @@ export default function HomeView({
                             <span className={`text-[10px] font-black uppercase tracking-wider ${
                                 quiz.difficulty === 'EASY' ? 'text-green-400' : quiz.difficulty === 'HARD' ? 'text-red-400' : 'text-yellow-400'
                             }`}>
-                                {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'} &bull; {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)} pytań
+                                {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'} &bull; {pytaniaPlural(Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
                             </span>
                         </div>
                         {coverUrl && (
@@ -136,7 +137,7 @@ export default function HomeView({
                     
                     <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4 pt-3 border-t border-white/5">
                         <span className="flex items-center gap-1">
-                            <Music size={12}/> {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)} pytań
+                            <Music size={12}/> {pytaniaPlural(Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
                         </span>
                         <span>
                             Graj teraz &rarr;

@@ -27,6 +27,7 @@ import AuthModal from './components/AuthModal';
 import HomeView from './components/HomeView';
 import GameSessionView from './components/GameSessionView';
 import SummaryView from './components/SummaryView';
+import { pytaniaPlural } from './utils/plurals';
 
 function GameView() {
   const [inputValue, setInputValue] = useState('');
@@ -710,7 +711,7 @@ function GameView() {
                       </span>
                       <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider flex items-center gap-1">
                         <Music size={11} />
-                        Pytania: {Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10)}
+                        {pytaniaPlural(Math.min(quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
                       </span>
                     </div>
 
