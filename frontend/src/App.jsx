@@ -71,12 +71,61 @@ function GameView() {
 
   const audioRef = useRef(null);
   const nextQuestionTimeoutRef = useRef(null);
+  const audioFadeIntervalRef = useRef(null);
 
   const [volume, setVolume] = useState(1);
 
+  const clearAudioFade = () => {
+    if (audioFadeIntervalRef.current) {
+      clearInterval(audioFadeIntervalRef.current);
+      audioFadeIntervalRef.current = null;
+    }
+  };
+
+  const fadeInAudio = () => {
+    if (!audioRef.current) return;
+    const targetVolume = volume * volume;
+    
+    clearAudioFade();
+    
+    // Rozpocznij od głośności 0
+    audioRef.current.volume = 0;
+    
+    audioRef.current.play().then(() => {
+        setIsPlaying(true);
+        const duration = 600; // czas wygaszania (ms)
+        const stepTime = 30; // krok czasowy (ms)
+        const steps = duration / stepTime;
+        let step = 0;
+        
+        audioFadeIntervalRef.current = setInterval(() => {
+            step++;
+            const progress = step / steps;
+            // Kwadratowe ease-in dla naturalnego przejścia głośności
+            const newVol = progress * progress * targetVolume;
+            
+            if (audioRef.current) {
+                audioRef.current.volume = Math.min(newVol, targetVolume);
+            }
+            
+            if (step >= steps) {
+                clearAudioFade();
+                if (audioRef.current) {
+                    audioRef.current.volume = targetVolume;
+                }
+            }
+        }, stepTime);
+    }).catch(e => {
+        console.error("Audio play/fade-in error:", e);
+        // Fallback w razie blokady autoodtwarzania przeglądarki
+        if (audioRef.current) {
+            audioRef.current.volume = targetVolume;
+        }
+    });
+  };
+
   useEffect(() => {
-    if (audioRef.current) {
-      // Logarithmic curve: slider position squared gives a natural-feeling volume
+    if (audioRef.current && !audioFadeIntervalRef.current) {
       audioRef.current.volume = volume * volume;
     }
   }, [volume]);
@@ -253,11 +302,13 @@ function GameView() {
     setWasPlayingBeforeQuitConfirm(isPlaying);
     setIsPlaying(false);
     audioRef.current?.pause();
+    clearAudioFade();
     setShowQuitConfirmation(true);
   };
 
   const confirmQuitSession = () => {
     setShowQuitConfirmation(false);
+    clearAudioFade();
     if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -286,6 +337,7 @@ function GameView() {
     setAudioDebug('');
     setIsPlaying(false); 
     setIsSubmitting(false); // Resetujemy blokadę po załadowaniu nowego pytania
+    clearAudioFade();
     
     if (audioRef.current) {
         audioRef.current.pause();
@@ -299,6 +351,7 @@ function GameView() {
 
         audioRef.current.src = finalSrc;
         audioRef.current.load();
+        audioRef.current.volume = volume * volume;
     }
   };
 
@@ -354,6 +407,10 @@ function GameView() {
     if (isPlaying) {
         audioRef.current?.pause();
         setIsPlaying(false);
+        clearAudioFade();
+        if (audioRef.current) {
+            audioRef.current.volume = volume * volume;
+        }
     } else {
         setAudioDebug('');
         const rawSrc = question.audio_source_url || question.audio_source_file || '';
@@ -369,14 +426,7 @@ function GameView() {
                 audioRef.current.src = finalSrc;
                 audioRef.current.load();
             }
-
-            audioRef.current.play().then(() => {
-                setIsPlaying(true);
-            }).catch(e => {
-                console.error("Audio play error", e);
-                setAudioDebug(`Błąd odtwarzania (sprawdź format pliku lub połączenie z portem 8000): ${e.message}`);
-                setIsPlaying(false);
-            });
+            fadeInAudio();
         }
     }
   };
@@ -427,12 +477,7 @@ function GameView() {
                  setSessionPoints(prev => prev + data.points_awarded);
                  setFeedback({ type: 'success', text: `DOBRZE! +${data.points_awarded} PKT` });
 
-                 if (audioRef.current) {
-                     audioRef.current.currentTime = 0;
-                     audioRef.current.play().then(() => {
-                         setIsPlaying(true);
-                     }).catch(e => console.error("Audio resume error:", e));
-                 }
+                 fadeInAudio();
 
                  if (nextQuestionTimeoutRef.current) {
                      clearTimeout(nextQuestionTimeoutRef.current);
@@ -462,14 +507,7 @@ function GameView() {
                      correctArtist: question?.song?.artist
                  });
 
-                 if (audioRef.current) {
-                     if (audioRef.current.paused || audioRef.current.ended) {
-                         audioRef.current.currentTime = 0;
-                     }
-                     audioRef.current.play().then(() => {
-                         setIsPlaying(true);
-                     }).catch(e => console.error("Audio resume error:", e));
-                 }
+                 fadeInAudio();
              }
         } else {
             setIsSubmitting(false); // Odblokowujemy w razie błędu serwera
@@ -896,8 +934,7 @@ function GameView() {
                   onClick={() => {
                     setShowQuitConfirmation(false);
                     if (wasPlayingBeforeQuitConfirm) {
-                      setIsPlaying(true);
-                      audioRef.current?.play().catch(e => console.error("Auto-resume failed:", e));
+                      fadeInAudio();
                     }
                   }}
                   className="flex-grow bg-gray-900 hover:bg-gray-800 text-white font-black uppercase tracking-wider py-3.5 rounded-xl border border-gray-800 transition-all hover:scale-[1.02] active:scale-[0.98]"

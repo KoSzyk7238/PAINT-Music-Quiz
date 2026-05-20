@@ -41,6 +41,7 @@ def fetch_apple_music_metadata(url):
             'artist': track.get('artistName'),
             'preview_url': track.get('previewUrl'),
             'genre': track.get('primaryGenreName'),
+            'artwork_url': track.get('artworkUrl100'),
         }
 
         # Parse release year
@@ -157,6 +158,7 @@ def fetch_multiple_apple_music_metadata(track_ids, country="pl"):
                         'artist': track.get('artistName'),
                         'preview_url': track.get('previewUrl'),
                         'genre': track.get('primaryGenreName'),
+                        'artwork_url': track.get('artworkUrl100'),
                     }
                     release_date = track.get('releaseDate')
                     if release_date and len(release_date) >= 4:
@@ -211,6 +213,7 @@ def fetch_playlist_cover_image(playlist_url):
             img_match = re.search(r'<meta[^>]*property="og:image"[^>]*content="([^"]+)"', html)
             if img_match:
                 img_url = img_match.group(1)
+                img_url = img_url.replace("1200x630bf", "1000x1000bb")
                 img_resp = requests.get(img_url, timeout=5)
                 if img_resp.status_code == 200:
                     return img_resp.content
