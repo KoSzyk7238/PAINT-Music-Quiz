@@ -73,7 +73,10 @@ function GameView() {
   const nextQuestionTimeoutRef = useRef(null);
   const audioFadeIntervalRef = useRef(null);
 
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(() => {
+      const stored = localStorage.getItem('quizVolume');
+      return stored !== null ? parseFloat(stored) : 1;
+  });
 
   const clearAudioFade = () => {
     if (audioFadeIntervalRef.current) {
@@ -162,6 +165,7 @@ function GameView() {
     if (audioRef.current && !audioFadeIntervalRef.current) {
       audioRef.current.volume = volume * volume;
     }
+    localStorage.setItem('quizVolume', volume.toString());
   }, [volume]);
 
   // Prevent pull-to-refresh on mobile when in a quiz session
@@ -733,8 +737,8 @@ function GameView() {
                     <span className="hidden sm:inline">streak:</span>
                     <span className="text-white font-bold text-lg sm:text-3xl">{sessionStreak}</span>
                   </div>
-                  <div className="px-3 py-1 sm:px-6 sm:py-2 border sm:border-2 border-gray-700 bg-gray-900/50 rounded-full shadow-lg whitespace-nowrap">
-                    <span className="hidden sm:inline">gatunek: </span><span className="text-green-500 font-black">{currentCategoryName}</span>
+                  <div className="px-3 py-1.5 sm:px-6 sm:py-2 border sm:border-2 border-gray-700 bg-gray-900/50 rounded-2xl shadow-lg break-words text-center max-w-[140px] xs:max-w-[180px] sm:max-w-xs md:max-w-md">
+                    <span className="hidden sm:inline">quiz: </span><span className="text-green-500 font-black">{currentQuiz?.title}</span>
                   </div>
                   <div className="flex items-center gap-1.5 sm:gap-3">
                     <Trophy className="text-yellow-500 w-4 h-4 sm:w-7 sm:h-7" fill="currentColor" size={24} />

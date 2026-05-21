@@ -34,6 +34,96 @@ from .serializers import (
 )
 from . import music_api
 import random
+import unicodedata
+import re
+import difflib
+
+
+def normalize_text(text):
+    if not text:
+        return ""
+    text = text.lower()
+    
+    # Polish characters manual mapping
+    polish_map = {
+        'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
+        'Ą': 'a', 'Ć': 'c', 'Ę': 'e', 'Ł': 'l', 'Ń': 'n', 'Ó': 'o', 'Ś': 's', 'Ź': 'z', 'Ż': 'z'
+    }
+    for k, v in polish_map.items():
+        text = text.replace(k, v)
+        
+    # Decompose unicode to strip other diacritics
+    text = ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
+    return text
+
+
+def clean_song_title(text):
+    text = normalize_text(text)
+    
+    # Unify brackets to parentheses
+    text = text.replace('[', '(').replace(']', ')')
+    
+    # Strip parenthetical annotations containing feature/remix etc.
+    keywords = ['feat', 'ft', 'featuring', 'with', 'remix', 'remaster', 'live', 'single', 'edit', 'version', 'cover', 'acoustic']
+    for kw in keywords:
+        pattern = r'\([^)]*' + re.escape(kw) + r'[^)]*\)'
+        text = re.sub(pattern, '', text)
+        
+    # Also strip dash annotations containing features/remix etc.
+    for kw in keywords:
+        pattern = r'\s*-\s*[^-$]*' + re.escape(kw) + r'[^-$]*'
+        text = re.sub(pattern, '', text)
+        
+    # Strip any trailing/leading whitespace and double spaces
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
+def strip_all_non_alphanumeric(text):
+    return re.sub(r'[^a-z0-9]', '', text)
+
+
+def is_similar_answer(user_ans, correct_ans):
+    if not user_ans or not correct_ans:
+        return False
+        
+    norm_user = normalize_text(user_ans).strip()
+    norm_correct = normalize_text(correct_ans).strip()
+    
+    if norm_user == norm_correct:
+        return True
+        
+    alpha_user = strip_all_non_alphanumeric(norm_user)
+    alpha_correct = strip_all_non_alphanumeric(norm_correct)
+    
+    if alpha_user and alpha_correct and alpha_user == alpha_correct:
+        return True
+        
+    clean_user = clean_song_title(user_ans)
+    clean_correct = clean_song_title(correct_ans)
+    
+    if clean_user == clean_correct:
+        return True
+        
+    alpha_clean_user = strip_all_non_alphanumeric(clean_user)
+    alpha_clean_correct = strip_all_non_alphanumeric(clean_correct)
+    
+    if alpha_clean_user and alpha_clean_correct and alpha_clean_user == alpha_clean_correct:
+        return True
+        
+    if len(clean_correct) >= 4:
+        ratio = difflib.SequenceMatcher(None, clean_user, clean_correct).ratio()
+        if ratio >= 0.85:
+            return True
+            
+        ratio_alpha = difflib.SequenceMatcher(None, alpha_clean_user, alpha_clean_correct).ratio()
+        if ratio_alpha >= 0.85:
+            return True
+            
+    return False
 
 
 def get_or_create_profile(user):
@@ -338,9 +428,15 @@ class GameSessionAttemptCreate(APIView):
             is_correct = selected_answer.is_correct
         elif answer_text is not None:
             normalized = str(answer_text).strip()
-            is_correct = question.answers.filter(is_correct=True, answer_text__iexact=normalized).exists()
-            if not is_correct and question.song:
-                is_correct = (normalized.lower() == question.song.title.lower())
+            correct_titles = list(question.answers.filter(is_correct=True).values_list('answer_text', flat=True))
+            if question.song and question.song.title:
+                correct_titles.append(question.song.title)
+            
+            is_correct = False
+            for correct_title in correct_titles:
+                if is_similar_answer(normalized, correct_title):
+                    is_correct = True
+                    break
         else:
             return Response({"error": "Podaj answer_id lub answer_text."}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -388,5 +388,69 @@ class GameSessionAttemptTests(APITestCase):
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_submit_fuzzy_match_case_insensitive(self):
+        url = reverse('session-attempts', kwargs={'session_id': self.session.id})
+        data = {
+            "question_id": self.question.id,
+            "answer_text": "track 1",
+            "time_taken_seconds": 5
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["is_correct"], True)
+
+    def test_submit_fuzzy_match_polish_diacritics(self):
+        song = Song.objects.create(title="Słodkiego, miłego życia", artist="Kombi", genre=self.genre)
+        question = Question.objects.create(quiz=self.quiz, song=song)
+        url = reverse('session-attempts', kwargs={'session_id': self.session.id})
+        
+        data = {
+            "question_id": question.id,
+            "answer_text": "slodkiego milego zycia",
+            "time_taken_seconds": 5
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["is_correct"], True)
+
+    def test_submit_fuzzy_match_suffix_removal(self):
+        song = Song.objects.create(title="Title (feat. Artist)", artist="Somebody", genre=self.genre)
+        question = Question.objects.create(quiz=self.quiz, song=song)
+        url = reverse('session-attempts', kwargs={'session_id': self.session.id})
+        
+        data = {
+            "question_id": question.id,
+            "answer_text": "Title",
+            "time_taken_seconds": 5
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["is_correct"], True)
+
+    def test_submit_fuzzy_match_punctuation_spaces(self):
+        url = reverse('session-attempts', kwargs={'session_id': self.session.id})
+        data = {
+            "question_id": self.question.id,
+            "answer_text": "  track   1! ",
+            "time_taken_seconds": 5
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["is_correct"], True)
+
+    def test_submit_fuzzy_match_minor_typos(self):
+        song = Song.objects.create(title="Chcemy być sobą", artist="Perfect", genre=self.genre)
+        question = Question.objects.create(quiz=self.quiz, song=song)
+        url = reverse('session-attempts', kwargs={'session_id': self.session.id})
+        
+        data = {
+            "question_id": question.id,
+            "answer_text": "chcemy byc sobo",
+            "time_taken_seconds": 5
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["is_correct"], True)
+
 
 
