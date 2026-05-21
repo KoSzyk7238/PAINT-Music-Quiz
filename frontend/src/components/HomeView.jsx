@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Star, Music, ChevronLeft, ChevronRight, Play, Flame, Trophy, Clock, Sparkles } from 'lucide-react';
 import { pytaniaPlural } from '../utils/plurals';
+import Carousel from './Carousel';
 
 export default function HomeView({
     apiDebug,
@@ -93,10 +94,11 @@ export default function HomeView({
     // Hero Quiz (featured) - take the first quiz
     const heroQuiz = quizzes.length > 0 ? quizzes[0] : null;
 
-    // Row definitions
-    const recommendedQuizzes = quizzes.slice(0, 6);
-    const hardestQuizzes = quizzes.filter(q => q.difficulty === 'HARD');
-    const normalQuizzes = quizzes.filter(q => q.difficulty === 'MEDIUM' || q.difficulty === 'EASY');
+    // Intelligent Categories
+    const trendingQuizzes = [...quizzes].sort((a, b) => (b.total_plays || 0) - (a.total_plays || 0)).slice(0, 12);
+    const newQuizzes = [...quizzes].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 12);
+    const hardestQuizzes = quizzes.filter(q => q.difficulty === 'HARD').slice(0, 12);
+    const normalQuizzes = quizzes.filter(q => q.difficulty === 'MEDIUM' || q.difficulty === 'EASY').slice(0, 12);
 
     const isFiltered = searchQuery || selectedCategory !== 'Wszystkie';
 
@@ -494,43 +496,29 @@ export default function HomeView({
                         </div>
                     )}
 
-                    {/* Row 1: Najczęściej Polecane */}
-                    {recommendedQuizzes.length > 0 && (
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-2">
-                                <Star className="text-green-400" size={20} fill="currentColor" />
-                                <h3 className="text-xl font-black text-white uppercase italic tracking-wide">Polecane wyzwania</h3>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4 pb-4">
-                                {recommendedQuizzes.map(renderQuizCard)}
-                            </div>
-                        </div>
+                    {/* Netflix-style Carousels */}
+                    {trendingQuizzes.length > 0 && (
+                        <Carousel title="Na czasie (Popularne)" icon={Flame}>
+                            {trendingQuizzes.map(renderQuizCard)}
+                        </Carousel>
                     )}
 
-                    {/* Row 2: Najtrudniejsze Wyzwania (HARD) */}
+                    {newQuizzes.length > 0 && (
+                        <Carousel title="Nowości" icon={Star}>
+                            {newQuizzes.map(renderQuizCard)}
+                        </Carousel>
+                    )}
+
                     {hardestQuizzes.length > 0 && (
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-2">
-                                <Trophy className="text-red-400" size={20} />
-                                <h3 className="text-xl font-black text-white uppercase italic tracking-wide">Prawdziwy sprawdzian słuchu (Trudne)</h3>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4 pb-4">
-                                {hardestQuizzes.map(renderQuizCard)}
-                            </div>
-                        </div>
+                        <Carousel title="Prawdziwy sprawdzian słuchu (Trudne)" icon={Trophy}>
+                            {hardestQuizzes.map(renderQuizCard)}
+                        </Carousel>
                     )}
 
-                    {/* Row 3: Standardowe Wyzwania */}
                     {normalQuizzes.length > 0 && (
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="text-yellow-400" size={20} />
-                                <h3 className="text-xl font-black text-white uppercase italic tracking-wide">Rozgrzewka muzyczna (Łatwe / Średnie)</h3>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4 pb-4">
-                                {normalQuizzes.map(renderQuizCard)}
-                            </div>
-                        </div>
+                        <Carousel title="Rozgrzewka muzyczna (Łatwe / Średnie)" icon={Sparkles}>
+                            {normalQuizzes.map(renderQuizCard)}
+                        </Carousel>
                     )}
                 </div>
             )}

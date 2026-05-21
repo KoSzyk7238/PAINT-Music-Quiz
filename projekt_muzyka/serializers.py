@@ -95,6 +95,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 class QuizListSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(read_only=True)
     questions_count = serializers.IntegerField(read_only=True)
+    total_plays = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Quiz
@@ -108,6 +109,7 @@ class QuizListSerializer(serializers.ModelSerializer):
             'num_questions_to_ask',
             'created_at',
             'questions_count',
+            'total_plays',
         ]
 
 

@@ -201,6 +201,11 @@ export default function GameSessionView({
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={handleKeyDown}
                             disabled={isSubmitting}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="none"
+                            spellCheck="false"
+                            enterKeyHint="send"
                             className="w-full bg-gray-900/80 border-2 border-gray-700 text-white p-4 sm:p-5 text-lg sm:text-2xl rounded-xl sm:rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all z-20 disabled:opacity-50 h-full"
                         />
                         

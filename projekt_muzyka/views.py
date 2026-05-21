@@ -253,7 +253,8 @@ class QuizList(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return Quiz.objects.select_related('genre').annotate(
-            questions_count=Count('questions', distinct=True)
+            questions_count=Count('questions', distinct=True),
+            total_plays=Count('sessions', filter=Q(sessions__finished_at__isnull=False), distinct=True)
         ).all()
 
 class QuizDetail(generics.RetrieveUpdateDestroyAPIView):

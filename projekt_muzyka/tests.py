@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from projekt_muzyka.models import UserProfile
+from projekt_muzyka.models import UserProfile, Genre, Song, Quiz, Answer, Question
 
 class MusicQuizAuthTests(APITestCase):
     def setUp(self):
@@ -277,5 +277,86 @@ class AppleMusicPlaylistTests(TestCase):
         q1 = Question.objects.get(quiz=quiz, song__title="Song One")
         self.assertEqual(q1.answers.filter(is_correct=True).count(), 2)
         self.assertEqual(q1.answers.filter(is_correct=False).count(), 3)
+
+
+class DjangoAdminBackupTests(TestCase):
+    def setUp(self):
+        # Create a superuser to access the admin site
+        self.admin_user = User.objects.create_superuser(
+            username='admin_test',
+            email='admin@test.com',
+            password='adminpassword123'
+        )
+        self.client.login(username='admin_test', password='adminpassword123')
+        
+        # Create some initial seed data
+        self.genre = Genre.objects.create(name="Pop", slug="pop")
+        self.song = Song.objects.create(
+            title="Song A",
+            artist="Artist A",
+            genre=self.genre,
+            release_year=2021
+        )
+        self.quiz = Quiz.objects.create(
+            title="Pop Quiz",
+            genre=self.genre,
+            difficulty="EASY"
+        )
+        
+    def test_backup_export_view(self):
+        url = reverse('admin:backup_export')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertTrue(response['Content-Disposition'].startswith('attachment; filename='))
+        
+        # Verify JSON content contains our data
+        data = response.json()
+        self.assertGreater(len(data), 0)
+        
+        # Check if the genre, song, and quiz names are in the exported data
+        model_names = [item['model'] for item in data]
+        self.assertIn('projekt_muzyka.genre', model_names)
+        self.assertIn('projekt_muzyka.song', model_names)
+        self.assertIn('projekt_muzyka.quiz', model_names)
+
+    def test_backup_import_view_no_file(self):
+        url = reverse('admin:backup_import')
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302) # Redirects back
+
+    def test_backup_import_view_success(self):
+        # First, export the data
+        export_url = reverse('admin:backup_export')
+        export_response = self.client.get(export_url)
+        exported_data = export_response.content
+        
+        # Modify the local database (delete items)
+        Quiz.objects.all().delete()
+        Song.objects.all().delete()
+        Genre.objects.all().delete()
+        
+        self.assertEqual(Quiz.objects.count(), 0)
+        self.assertEqual(Song.objects.count(), 0)
+        self.assertEqual(Genre.objects.count(), 0)
+        
+        # Now import the exported data back
+        import io
+        import_url = reverse('admin:backup_import')
+        
+        # We simulate a file upload using io.BytesIO
+        import_file = io.BytesIO(exported_data)
+        import_file.name = 'db_backup.json'
+        
+        response = self.client.post(import_url, {
+            'backup_file': import_file,
+            'clear_existing': 'yes'
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify that the objects have been restored
+        self.assertEqual(Genre.objects.filter(name="Pop").exists(), True)
+        self.assertEqual(Song.objects.filter(title="Song A").exists(), True)
+        self.assertEqual(Quiz.objects.filter(title="Pop Quiz").exists(), True)
 
 

@@ -2,6 +2,76 @@ from django import forms
 from django.contrib import admin
 from .models import Genre, Song, Quiz, Question, Answer, UserScore, GameSession, QuestionAttempt, UserProfile
 from .apple_music import resolve_preview_url, fetch_apple_music_metadata
+from import_export import resources, fields
+from import_export.widgets import ForeignKeyWidget
+from import_export.admin import ImportExportModelAdmin
+
+# Resource definitions for django-import-export
+class GenreResource(resources.ModelResource):
+    class Meta:
+        model = Genre
+        import_id_fields = ('id',)
+
+class SongResource(resources.ModelResource):
+    genre = fields.Field(
+        column_name='genre',
+        attribute='genre',
+        widget=ForeignKeyWidget(Genre, field='name')
+    )
+
+    class Meta:
+        model = Song
+        import_id_fields = ('id',)
+
+    def before_import_row(self, row, **kwargs):
+        genre_name = row.get('genre')
+        if genre_name:
+            from django.utils.text import slugify
+            Genre.objects.get_or_create(
+                name=genre_name.strip(),
+                defaults={'slug': slugify(genre_name.strip())}
+            )
+
+class QuizResource(resources.ModelResource):
+    genre = fields.Field(
+        column_name='genre',
+        attribute='genre',
+        widget=ForeignKeyWidget(Genre, field='name')
+    )
+
+    class Meta:
+        model = Quiz
+        import_id_fields = ('id',)
+
+    def before_import_row(self, row, **kwargs):
+        genre_name = row.get('genre')
+        if genre_name:
+            from django.utils.text import slugify
+            Genre.objects.get_or_create(
+                name=genre_name.strip(),
+                defaults={'slug': slugify(genre_name.strip())}
+            )
+
+class QuestionResource(resources.ModelResource):
+    quiz = fields.Field(
+        column_name='quiz',
+        attribute='quiz',
+        widget=ForeignKeyWidget(Quiz, field='title')
+    )
+    song = fields.Field(
+        column_name='song',
+        attribute='song',
+        widget=ForeignKeyWidget(Song, field='title')
+    )
+
+    class Meta:
+        model = Question
+        import_id_fields = ('id',)
+
+class AnswerResource(resources.ModelResource):
+    class Meta:
+        model = Answer
+        import_id_fields = ('id',)
 
 # Konfiguracja pozwalająca dodawać odpowiedzi bezpośrednio w widoku edycji pytania
 class AnswerInline(admin.TabularInline):
@@ -14,12 +84,14 @@ class QuestionInline(admin.TabularInline):
     fields = ('song', 'points', 'time_limit')
     show_change_link = True # Pozwala przejść do pytania, żeby dodać odpowiedzi
 
-class QuestionAdmin(admin.ModelAdmin):
+class QuestionAdmin(ImportExportModelAdmin):
+    resource_classes = [QuestionResource]
     inlines = [AnswerInline]
     list_display = ('id', 'quiz', 'song', 'points')
     list_filter = ('quiz', 'song')
 
-class QuizAdmin(admin.ModelAdmin):
+class QuizAdmin(ImportExportModelAdmin):
+    resource_classes = [QuizResource]
     list_display = ('title', 'genre', 'num_questions_to_ask', 'time_limit', 'created_at')
     search_fields = ('title',)
     list_editable = ('num_questions_to_ask', 'time_limit')
@@ -228,7 +300,8 @@ class QuizAdmin(admin.ModelAdmin):
         })
 
 
-class GenreAdmin(admin.ModelAdmin):
+class GenreAdmin(ImportExportModelAdmin):
+    resource_classes = [GenreResource]
     list_display = ('name', 'slug', 'created_at')
     search_fields = ('name', 'slug')
 
@@ -276,37 +349,136 @@ class SongAdminForm(forms.ModelForm):
         return cleaned_data
 
 
-class SongAdmin(admin.ModelAdmin):
+class SongAdmin(ImportExportModelAdmin):
+    resource_classes = [SongResource]
     form = SongAdminForm
     list_display = ('title', 'artist', 'genre', 'release_year', 'created_at')
     list_filter = ('genre',)
     search_fields = ('title', 'artist')
 
-class UserScoreAdmin(admin.ModelAdmin):
+class UserScoreAdmin(ImportExportModelAdmin):
     list_display = ('user', 'quiz', 'score', 'played_at')
     list_filter = ('quiz', 'user')
 
 
-class GameSessionAdmin(admin.ModelAdmin):
+class GameSessionAdmin(ImportExportModelAdmin):
     list_display = ('id', 'user', 'quiz', 'total_points', 'finished_at')
     list_filter = ('quiz',)
     search_fields = ('id',)
 
 
-class QuestionAttemptAdmin(admin.ModelAdmin):
+class QuestionAttemptAdmin(ImportExportModelAdmin):
     list_display = ('id', 'session', 'question', 'is_correct', 'points_awarded', 'created_at')
     list_filter = ('is_correct',)
     search_fields = ('id',)
 
 
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(ImportExportModelAdmin):
     list_display = ('user', 'display_name', 'total_points', 'current_streak', 'best_streak')
     search_fields = ('user__username', 'display_name')
 
+class AnswerAdmin(ImportExportModelAdmin):
+    resource_classes = [AnswerResource]
+    list_display = ('id', 'question', 'answer_text', 'is_correct')
+    list_filter = ('is_correct',)
+    search_fields = ('answer_text',)
+
+# Custom Admin Backup Views
+def backup_manage_view(request):
+    from django.shortcuts import render
+    context = admin.site.each_context(request)
+    context.update({
+        'title': 'Kopia zapasowa bazy danych',
+    })
+    return render(request, 'admin/projekt_muzyka/backup_manage.html', context)
+
+def backup_export_view(request):
+    from django.core import management
+    import io
+    from django.http import HttpResponse
+    
+    output = io.StringIO()
+    management.call_command(
+        'dumpdata',
+        exclude=['contenttypes', 'auth.Permission', 'sessions', 'admin.logentry'],
+        indent=4,
+        stdout=output
+    )
+    
+    response = HttpResponse(output.getvalue(), content_type='application/json')
+    response['Content-Disposition'] = 'attachment; filename="db_backup.json"'
+    return response
+
+def backup_import_view(request):
+    from django.core import management
+    from django.db import transaction
+    from django.contrib import messages
+    from django.shortcuts import redirect
+    import tempfile
+    import os
+    
+    if request.method == 'POST':
+        backup_file = request.FILES.get('backup_file')
+        clear_existing = request.POST.get('clear_existing') == 'yes'
+        
+        if not backup_file:
+            messages.error(request, "Nie wybrano pliku.")
+            return redirect('admin:backup_manage')
+            
+        try:
+            with transaction.atomic():
+                if clear_existing:
+                    # Clear models to ensure a clean slate
+                    QuestionAttempt.objects.all().delete()
+                    GameSession.objects.all().delete()
+                    UserScore.objects.all().delete()
+                    Answer.objects.all().delete()
+                    Question.objects.all().delete()
+                    Quiz.objects.all().delete()
+                    Song.objects.all().delete()
+                    Genre.objects.all().delete()
+                    UserProfile.objects.all().delete()
+                    
+                with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as temp_file:
+                    for chunk in backup_file.chunks():
+                        temp_file.write(chunk)
+                    temp_file_path = temp_file.name
+                    
+                try:
+                    management.call_command('loaddata', temp_file_path)
+                    messages.success(request, "Baza danych została pomyślnie zaimportowana!")
+                finally:
+                    if os.path.exists(temp_file_path):
+                        os.remove(temp_file_path)
+                        
+        except Exception as e:
+            messages.error(request, f"Błąd podczas importu danych: {str(e)}")
+            
+        return redirect('admin:backup_manage')
+    
+    return redirect('admin:backup_manage')
+
+# Overriding AdminSite URLs to inject the backup views
+original_get_urls = admin.site.get_urls
+
+def new_get_urls():
+    from django.urls import path
+    urls = original_get_urls()
+    custom_urls = [
+        path('backup/', admin.site.admin_view(backup_manage_view), name='backup_manage'),
+        path('backup/export/', admin.site.admin_view(backup_export_view), name='backup_export'),
+        path('backup/import/', admin.site.admin_view(backup_import_view), name='backup_import'),
+    ]
+    return custom_urls + urls
+
+admin.site.get_urls = new_get_urls
+
+# Register all model admins
 admin.site.register(Genre, GenreAdmin)
 admin.site.register(Song, SongAdmin)
 admin.site.register(Quiz, QuizAdmin)
 admin.site.register(Question, QuestionAdmin)
+admin.site.register(Answer, AnswerAdmin)
 admin.site.register(UserScore, UserScoreAdmin)
 admin.site.register(GameSession, GameSessionAdmin)
 admin.site.register(QuestionAttempt, QuestionAttemptAdmin)

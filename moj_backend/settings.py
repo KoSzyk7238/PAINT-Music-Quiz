@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'projekt_muzyka',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,8 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Dodane przez Ciebie aplikacje i biblioteki:
+    'import_export',
     'rest_framework',
-    'projekt_muzyka',
 ]
 
 MIDDLEWARE = [
@@ -153,3 +154,6 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.ngrok-free.dev',
     'https://*.playit.gg',
 ]
+
+# Settings for django-import-export
+IMPORT_EXPORT_USE_TRANSACTIONS = True

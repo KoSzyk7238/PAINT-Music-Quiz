@@ -54,8 +54,14 @@ export default function AuthModal({ activeModal, setActiveModal, guestSessionId 
     };
 
     return (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-md animate-in fade-in duration-300 p-4">
-            <div className="bg-gray-900 border-2 border-green-500/50 p-6 sm:p-10 w-full max-w-md rounded-2xl sm:rounded-[32px] relative shadow-[0_0_50px_rgba(34,197,94,0.2)]">
+        <div 
+            className="fixed inset-0 bg-black/90 flex flex-col justify-end sm:justify-center items-center z-50 backdrop-blur-md animate-in fade-in duration-300 p-0 sm:p-4"
+            onClick={() => setActiveModal(null)}
+        >
+            <div 
+                className="bg-gray-900 border-t-2 border-x-2 sm:border-2 border-green-500/50 p-6 pb-12 sm:pb-10 sm:p-10 w-full max-w-md rounded-t-3xl sm:rounded-[32px] relative shadow-[0_-10px_50px_rgba(34,197,94,0.15)] sm:shadow-[0_0_50px_rgba(34,197,94,0.2)] animate-in slide-in-from-bottom-full sm:zoom-in duration-300"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <button
                     onClick={() => setActiveModal(null)}
                     className="absolute top-4 right-4 sm:top-6 sm:right-6 text-gray-500 hover:text-white transition-colors"

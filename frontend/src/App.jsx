@@ -164,6 +164,21 @@ function GameView() {
     }
   }, [volume]);
 
+  // Prevent pull-to-refresh on mobile when in a quiz session
+  useEffect(() => {
+    if (currentQuiz && !sessionSummary) {
+      document.body.style.overscrollBehaviorY = 'none';
+      document.documentElement.style.overscrollBehaviorY = 'none';
+    } else {
+      document.body.style.overscrollBehaviorY = 'auto';
+      document.documentElement.style.overscrollBehaviorY = 'auto';
+    }
+    return () => {
+      document.body.style.overscrollBehaviorY = 'auto';
+      document.documentElement.style.overscrollBehaviorY = 'auto';
+    };
+  }, [currentQuiz, sessionSummary]);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -524,6 +539,7 @@ function GameView() {
         if (res.ok) {
             const data = await res.json();
              if (data.is_correct) {
+                 if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                  setSessionStreak(prev => prev + 1);
                  setSessionPoints(prev => prev + data.points_awarded);
                  setFeedback({ type: 'success', text: `DOBRZE! +${data.points_awarded} PKT` });
@@ -554,6 +570,7 @@ function GameView() {
                      }, 4000);
                  }
              } else {
+                 if (navigator.vibrate) navigator.vibrate(200);
                  setSessionStreak(0);
                  setFeedback({ 
                      type: 'error', 
@@ -696,27 +713,33 @@ function GameView() {
               </button>
           )}
 
-          <div className="mb-6 text-center mt-4">
-            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
-              JAKI TO SYGNAŁ?
-            </h1>
+          <div className="mb-4 sm:mb-6 text-center mt-2 sm:mt-4">
+            {!currentQuiz ? (
+                <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                  JAKI TO SYGNAŁ?
+                </h1>
+            ) : (
+                <h1 className="text-2xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-2 sm:mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                  JAKI TO SYGNAŁ?
+                </h1>
+            )}
 
             {(currentQuiz && !sessionSummary) && (
-                <div className="flex flex-wrap justify-center gap-4 sm:gap-14 items-center text-sm sm:text-xl text-gray-400 uppercase tracking-widest mt-8">
-                  <div className="flex items-center gap-2 sm:gap-4 relative">
+                <div className="flex flex-row justify-center gap-3 sm:gap-14 items-center text-xs sm:text-xl text-gray-400 uppercase tracking-widest mt-2 sm:mt-8 bg-gray-900/40 sm:bg-transparent py-2 sm:py-0 rounded-2xl border border-white/5 sm:border-none mx-auto max-w-fit px-4 sm:px-0">
+                  <div className="flex items-center gap-1.5 sm:gap-4 relative">
                     <div className={`transition-all duration-300 ${getFlameStyle(sessionStreak)}`}>
-                        <Flame fill="currentColor" size={24} className="sm:w-7 sm:h-7" />
+                        <Flame fill="currentColor" size={24} className="w-5 h-5 sm:w-7 sm:h-7" />
                     </div>
-                    <span>streak:</span>
-                    <span className="text-white font-bold text-xl sm:text-3xl">{sessionStreak}</span>
+                    <span className="hidden sm:inline">streak:</span>
+                    <span className="text-white font-bold text-lg sm:text-3xl">{sessionStreak}</span>
                   </div>
-                  <div className="px-4 py-1.5 sm:px-6 sm:py-2 border-2 border-gray-700 bg-gray-900/50 rounded-full shadow-lg whitespace-nowrap min-w-fit">
-                    gatunek: <span className="text-green-500 font-black">{currentCategoryName}</span>
+                  <div className="px-3 py-1 sm:px-6 sm:py-2 border sm:border-2 border-gray-700 bg-gray-900/50 rounded-full shadow-lg whitespace-nowrap">
+                    <span className="hidden sm:inline">gatunek: </span><span className="text-green-500 font-black">{currentCategoryName}</span>
                   </div>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <Trophy className="text-yellow-500" fill="currentColor" size={24} className="sm:w-7 sm:h-7" />
-                    <span>punkty:</span>
-                    <span className="text-yellow-400 font-black text-2xl sm:text-4xl drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">{sessionPoints}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-3">
+                    <Trophy className="text-yellow-500 w-4 h-4 sm:w-7 sm:h-7" fill="currentColor" size={24} />
+                    <span className="hidden sm:inline">punkty:</span>
+                    <span className="text-yellow-400 font-black text-xl sm:text-4xl drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">{sessionPoints}</span>
                   </div>
                 </div>
             )}
@@ -783,7 +806,7 @@ function GameView() {
             guestSessionId={sessionId}
         />
 
-        {/* Intentional Quiz Entry Preview Popup */}
+        {/* Intentional Quiz Entry Preview Popup - Bottom Sheet on Mobile */}
         {selectedQuizForPreview && (() => {
           const quiz = selectedQuizForPreview;
           const getFullCoverUrl = (url) => {
@@ -796,8 +819,11 @@ function GameView() {
           const stats = quiz.stats || { total_plays: 0, average_score_percent: 0.0, average_time_seconds: 0.0, dynamic_difficulty: quiz.difficulty };
 
           return (
-            <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-gray-950 border border-gray-800 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl relative flex flex-col md:flex-row text-left max-h-[90vh]">
+            <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col justify-end sm:justify-center p-0 sm:p-4">
+              <div 
+                className="bg-gray-950 border border-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-3xl sm:mx-auto overflow-hidden shadow-2xl relative flex flex-col md:flex-row text-left max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-full sm:zoom-in duration-300"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {/* Close Button */}
                 <button 
                   onClick={() => setSelectedQuizForPreview(null)}
