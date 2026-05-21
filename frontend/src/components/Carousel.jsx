@@ -105,7 +105,7 @@ export default function Carousel({ title, icon: Icon, children }) {
                 >
                     {React.Children.map(children, child => (
                         <div 
-                            className="snap-start shrink-0 w-[80vw] sm:w-[280px] md:w-[320px]"
+                            className="snap-start shrink-0 w-72 sm:w-80"
                             onClickCapture={(e) => {
                                 if (isDraggingMove) {
                                     e.stopPropagation();
