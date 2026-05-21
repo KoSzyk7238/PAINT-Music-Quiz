@@ -129,6 +129,13 @@ export default function GameSessionView({
                         </div>
                     </div>
 
+                    {/* Genre Display */}
+                    <div className="text-center my-2 sm:my-3">
+                        <span className="text-[10px] sm:text-xs font-bold tracking-widest text-gray-400 uppercase bg-gray-950/60 border border-gray-800 px-4 py-1.5 rounded-full inline-block shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)]">
+                            gatunek: <span className="text-green-500 font-black">{question?.song?.genre?.name || currentQuiz?.genre?.name || 'Mix'}</span>
+                        </span>
+                    </div>
+
                     {/* Volume */}
                     <div className="flex items-center justify-center gap-3 mt-1 opacity-60 hover:opacity-100 transition-opacity duration-300">
                         <button
