@@ -100,12 +100,12 @@ export default function Carousel({ title, icon: Icon, children }) {
                     onMouseLeave={handleMouseLeave}
                     onMouseUp={handleMouseUp}
                     onMouseMove={handleMouseMove}
-                    className={`flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar items-stretch w-full px-4 sm:px-0 scroll-smooth ${!isDraggingMove ? 'snap-x snap-mandatory' : ''}`}
+                    className={`flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar items-stretch w-full px-4 sm:px-0 -my-6 scroll-smooth ${!isDraggingMove ? 'snap-x snap-mandatory' : ''}`}
                     style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
                 >
                     {React.Children.map(children, child => (
                         <div 
-                            className="snap-start shrink-0 w-72 sm:w-80"
+                            className="snap-start shrink-0 w-72 sm:w-80 relative hover:z-20 transition-all duration-300 pt-6 pb-6"
                             onClickCapture={(e) => {
                                 if (isDraggingMove) {
                                     e.stopPropagation();

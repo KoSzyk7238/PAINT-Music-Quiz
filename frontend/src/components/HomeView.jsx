@@ -228,7 +228,7 @@ export default function HomeView({
             <div 
                 key={quiz.id} 
                 onClick={() => startSession(quiz)}
-                className="w-full group cursor-pointer relative rounded-2xl overflow-hidden border border-white/5 bg-gray-950 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-300 transform hover:-translate-y-2 hover:z-10"
+                className="w-full group cursor-pointer relative rounded-2xl overflow-hidden border border-white/5 bg-gray-950 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-300 transform hover:-translate-y-2 hover:z-20"
             >
                 {/* Aspect ratio box for Netflix look */}
                 <div className="aspect-[16/10] relative w-full overflow-hidden">
@@ -479,7 +479,7 @@ export default function HomeView({
                             onTouchMove={handleTouchMove}
                             onTouchEnd={handleTouchEnd}
                             style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-                            className="relative w-full h-[320px] sm:h-[400px] rounded-3xl overflow-hidden border border-white/5 bg-gray-950 shadow-2xl group select-none"
+                            className="relative w-full h-[320px] sm:h-[400px] rounded-3xl overflow-hidden border border-white/5 bg-gray-950 shadow-2xl group select-none isolate"
                         >
                             {/* Slides Container */}
                             <div className="w-full h-full relative">
@@ -546,7 +546,7 @@ export default function HomeView({
                                                 startSession(quiz);
                                             }}
                                             style={slideStyle}
-                                            className={`absolute inset-0 w-full h-full cursor-pointer flex items-end ${transitionClass} ${visibilityClass}`}
+                                            className={`absolute inset-0 w-full h-full cursor-pointer flex items-end rounded-3xl overflow-hidden ${transitionClass} ${visibilityClass}`}
                                         >
                                             {/* Background Image / Gradient */}
                                             {coverUrl ? (
