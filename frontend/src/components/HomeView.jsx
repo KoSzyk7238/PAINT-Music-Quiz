@@ -14,15 +14,86 @@ export default function HomeView({
     startSession
 }) {
     const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
+    const [isDragging, setIsDragging] = React.useState(false);
+    const [isDraggingMove, setIsDraggingMove] = React.useState(false);
+    const [startX, setStartX] = React.useState(0);
+    const [dragOffset, setDragOffset] = React.useState(0);
+    const [containerWidth, setContainerWidth] = React.useState(0);
+    const containerRef = React.useRef(null);
     const heroQuizzes = quizzes.slice(0, 5);
 
     React.useEffect(() => {
-        if (heroQuizzes.length <= 1) return;
+        if (heroQuizzes.length <= 1 || isDragging) return;
         const interval = setInterval(() => {
             setActiveHeroIndex(prev => (prev + 1) % heroQuizzes.length);
         }, 6000);
         return () => clearInterval(interval);
-    }, [heroQuizzes.length]);
+    }, [heroQuizzes.length, activeHeroIndex, isDragging]);
+
+    const handleMouseDown = (e) => {
+        if (e.button !== 0) return; // Only left click
+        if (containerRef.current) {
+            setContainerWidth(containerRef.current.clientWidth);
+        }
+        setIsDragging(true);
+        setIsDraggingMove(false);
+        setStartX(e.clientX);
+        setDragOffset(0);
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        const currentX = e.clientX;
+        const diffX = currentX - startX;
+        setDragOffset(diffX);
+        if (Math.abs(diffX) > 10) {
+            setIsDraggingMove(true);
+        }
+    };
+
+    const handleMouseUp = () => {
+        if (!isDragging) return;
+        setIsDragging(false);
+        
+        const threshold = 80;
+        if (isDraggingMove && Math.abs(dragOffset) > threshold) {
+            if (dragOffset < 0) {
+                setActiveHeroIndex(prev => (prev + 1) % heroQuizzes.length);
+            } else {
+                setActiveHeroIndex(prev => (prev - 1 + heroQuizzes.length) % heroQuizzes.length);
+            }
+        }
+        setDragOffset(0);
+        setTimeout(() => setIsDraggingMove(false), 50);
+    };
+
+    const handleMouseLeave = () => {
+        handleMouseUp();
+    };
+
+    const handleTouchStart = (e) => {
+        if (containerRef.current) {
+            setContainerWidth(containerRef.current.clientWidth);
+        }
+        setIsDragging(true);
+        setIsDraggingMove(false);
+        setStartX(e.touches[0].clientX);
+        setDragOffset(0);
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isDragging) return;
+        const currentX = e.touches[0].clientX;
+        const diffX = currentX - startX;
+        setDragOffset(diffX);
+        if (Math.abs(diffX) > 10) {
+            setIsDraggingMove(true);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        handleMouseUp();
+    };
 
     const categoriesRef = React.useRef(null);
     const [showLeftArrow, setShowLeftArrow] = React.useState(false);
@@ -398,7 +469,18 @@ export default function HomeView({
                 <div className="flex flex-col gap-12">
                     {/* Hero Section Banner (Slideshow Carousel) */}
                     {heroQuizzes.length > 0 && (
-                        <div className="relative w-full h-[320px] sm:h-[400px] rounded-3xl overflow-hidden border border-white/5 bg-gray-950 shadow-2xl group">
+                        <div 
+                            ref={containerRef}
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onMouseLeave={handleMouseLeave}
+                            onTouchStart={handleTouchStart}
+                            onTouchMove={handleTouchMove}
+                            onTouchEnd={handleTouchEnd}
+                            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                            className="relative w-full h-[320px] sm:h-[400px] rounded-3xl overflow-hidden border border-white/5 bg-gray-950 shadow-2xl group select-none"
+                        >
                             {/* Slides Container */}
                             <div className="w-full h-full relative">
                                 {heroQuizzes.map((quiz, idx) => {
@@ -406,24 +488,73 @@ export default function HomeView({
                                     const isPast = idx < activeHeroIndex;
                                     const coverUrl = getFullCoverUrl(quiz.cover_image);
                                     
+                                    let slideStyle = {};
+                                    let transitionClass = "transition-all duration-700 ease-in-out";
+                                    let visibilityClass = "";
+
+                                    if (isDragging && isDraggingMove && containerWidth > 0) {
+                                        transitionClass = ""; // turn off CSS transition during drag
+                                        const nextIdx = (activeHeroIndex + 1) % heroQuizzes.length;
+                                        const prevIdx = (activeHeroIndex - 1 + heroQuizzes.length) % heroQuizzes.length;
+                                        
+                                        if (isActive) {
+                                            slideStyle = {
+                                                transform: `translateX(${dragOffset}px)`,
+                                                opacity: 1 - Math.min(Math.abs(dragOffset) / containerWidth, 0.8),
+                                                pointerEvents: 'none',
+                                                zIndex: 10,
+                                            };
+                                        } else if (dragOffset < 0 && idx === nextIdx) {
+                                            slideStyle = {
+                                                transform: `translateX(${containerWidth + dragOffset}px)`,
+                                                opacity: Math.min(Math.abs(dragOffset) / containerWidth, 1),
+                                                pointerEvents: 'none',
+                                                zIndex: 10,
+                                            };
+                                        } else if (dragOffset > 0 && idx === prevIdx) {
+                                            slideStyle = {
+                                                transform: `translateX(${-containerWidth + dragOffset}px)`,
+                                                opacity: Math.min(Math.abs(dragOffset) / containerWidth, 1),
+                                                pointerEvents: 'none',
+                                                zIndex: 10,
+                                            };
+                                        } else {
+                                            slideStyle = {
+                                                transform: isPast ? 'translateX(-100%)' : 'translateX(100%)',
+                                                opacity: 0,
+                                                pointerEvents: 'none',
+                                                zIndex: 0,
+                                            };
+                                        }
+                                    } else {
+                                        visibilityClass = isActive 
+                                            ? 'opacity-100 translate-x-0 pointer-events-auto z-10' 
+                                            : isPast 
+                                            ? 'opacity-0 -translate-x-full pointer-events-none z-0' 
+                                            : 'opacity-0 translate-x-full pointer-events-none z-0';
+                                    }
+                                    
                                     return (
                                         <div 
                                             key={quiz.id}
-                                            onClick={() => startSession(quiz)}
-                                            className={`absolute inset-0 w-full h-full cursor-pointer flex items-end transition-all duration-700 ease-in-out ${
-                                                isActive 
-                                                    ? 'opacity-100 translate-x-0 pointer-events-auto z-10' 
-                                                    : isPast 
-                                                    ? 'opacity-0 -translate-x-full pointer-events-none z-0' 
-                                                    : 'opacity-0 translate-x-full pointer-events-none z-0'
-                                            }`}
+                                            onClick={(e) => {
+                                                if (isDraggingMove) {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    return;
+                                                }
+                                                startSession(quiz);
+                                            }}
+                                            style={slideStyle}
+                                            className={`absolute inset-0 w-full h-full cursor-pointer flex items-end ${transitionClass} ${visibilityClass}`}
                                         >
                                             {/* Background Image / Gradient */}
                                             {coverUrl ? (
                                                 <img 
                                                     src={coverUrl} 
                                                     alt={quiz.title} 
-                                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-1000"
+                                                    draggable="false"
+                                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-1000 select-none"
                                                 />
                                             ) : (
                                                 <div className={`absolute inset-0 bg-gradient-to-r ${getPlaceholderGradient(quiz.title)} group-hover:scale-[1.02] transition-transform duration-1000`}></div>
@@ -456,6 +587,7 @@ export default function HomeView({
                                                     <button 
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            if (isDraggingMove) return;
                                                             startSession(quiz);
                                                         }}
                                                         className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black font-black uppercase px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl transition-all shadow-[0_10px_20px_rgba(34,197,94,0.3)] hover:scale-105 active:scale-95 text-sm sm:text-base"
@@ -472,6 +604,32 @@ export default function HomeView({
                                     );
                                 })}
                             </div>
+
+                            {/* Left/Right Chevrons */}
+                            {heroQuizzes.length > 1 && (
+                                <>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveHeroIndex(prev => (prev - 1 + heroQuizzes.length) % heroQuizzes.length);
+                                        }}
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-white p-3 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300 hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center cursor-pointer"
+                                        title="Poprzedni slajd"
+                                    >
+                                        <ChevronLeft size={24} />
+                                    </button>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveHeroIndex(prev => (prev + 1) % heroQuizzes.length);
+                                        }}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-white p-3 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300 hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center cursor-pointer"
+                                        title="Następny slajd"
+                                    >
+                                        <ChevronRight size={24} />
+                                    </button>
+                                </>
+                            )}
 
                             {/* Dots Indicators */}
                             {heroQuizzes.length > 1 && (
