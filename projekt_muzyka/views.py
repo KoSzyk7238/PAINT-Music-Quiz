@@ -336,7 +336,7 @@ class GameSessionAttemptCreate(APIView):
         if answer_id:
             selected_answer = get_object_or_404(Answer, pk=answer_id, question=question)
             is_correct = selected_answer.is_correct
-        elif answer_text:
+        elif answer_text is not None:
             normalized = str(answer_text).strip()
             is_correct = question.answers.filter(is_correct=True, answer_text__iexact=normalized).exists()
             if not is_correct and question.song:

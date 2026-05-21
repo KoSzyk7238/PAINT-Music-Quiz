@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from projekt_muzyka.models import UserProfile, Genre, Song, Quiz, Answer, Question
+from projekt_muzyka.models import UserProfile, Genre, Song, Quiz, Answer, Question, GameSession
 
 class MusicQuizAuthTests(APITestCase):
     def setUp(self):
@@ -358,5 +358,35 @@ class DjangoAdminBackupTests(TestCase):
         self.assertEqual(Genre.objects.filter(name="Pop").exists(), True)
         self.assertEqual(Song.objects.filter(title="Song A").exists(), True)
         self.assertEqual(Quiz.objects.filter(title="Pop Quiz").exists(), True)
+
+
+class GameSessionAttemptTests(APITestCase):
+    def setUp(self):
+        self.genre = Genre.objects.create(name="Rock", slug="rock")
+        self.song = Song.objects.create(title="Track 1", artist="Artist 1", genre=self.genre)
+        self.quiz = Quiz.objects.create(title="Rock Quiz", genre=self.genre)
+        self.question = Question.objects.create(quiz=self.quiz, song=self.song)
+        self.session = GameSession.objects.create(quiz=self.quiz)
+
+    def test_submit_empty_answer_text(self):
+        url = reverse('session-attempts', kwargs={'session_id': self.session.id})
+        data = {
+            "question_id": self.question.id,
+            "answer_text": "",
+            "time_taken_seconds": 5
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["is_correct"], False)
+
+    def test_submit_no_answer_text_or_id(self):
+        url = reverse('session-attempts', kwargs={'session_id': self.session.id})
+        data = {
+            "question_id": self.question.id,
+            "time_taken_seconds": 5
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
 
 
