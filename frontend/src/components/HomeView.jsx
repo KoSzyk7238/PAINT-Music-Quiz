@@ -11,7 +11,8 @@ export default function HomeView({
     setSelectedCategory,
     quizzes,
     isLoading,
-    startSession
+    startSession,
+    genres = []
 }) {
     const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
     const [isDragging, setIsDragging] = React.useState(false);
@@ -99,7 +100,7 @@ export default function HomeView({
     const [showLeftArrow, setShowLeftArrow] = React.useState(false);
     const [showRightArrow, setShowRightArrow] = React.useState(false);
 
-    const allCategories = ['Wszystkie', ...new Set(quizzes.map(q => q.genre?.name).filter(Boolean))];
+    const allCategories = ['Wszystkie', ...genres.map(g => g.name)];
 
     const checkScroll = () => {
         if (categoriesRef.current) {
@@ -158,7 +159,9 @@ export default function HomeView({
     const filteredQuizzes = quizzes.filter(quiz => {
         const matchesSearch = quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                               (quiz.description && quiz.description.toLowerCase().includes(searchQuery.toLowerCase()));
-        const matchesCategory = selectedCategory === 'Wszystkie' || quiz.genre?.name === selectedCategory;
+        const matchesCategory = selectedCategory === 'Wszystkie' || 
+                                (quiz.song_categories && quiz.song_categories.includes(selectedCategory)) ||
+                                quiz.genre?.name === selectedCategory;
         return matchesSearch && matchesCategory;
     });
 

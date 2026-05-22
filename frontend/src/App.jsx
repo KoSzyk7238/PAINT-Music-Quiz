@@ -903,6 +903,7 @@ function GameView() {
                 quizzes={quizzes}
                 isLoading={isLoadingQuizzes}
                 startSession={handleSelectQuizForPreview}
+                genres={genres}
              />
           ) : (
               <GameSessionView 

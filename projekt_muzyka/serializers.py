@@ -102,6 +102,7 @@ class QuizListSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(read_only=True)
     questions_count = serializers.IntegerField(read_only=True)
     total_plays = serializers.IntegerField(read_only=True)
+    song_categories = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
@@ -117,7 +118,15 @@ class QuizListSerializer(serializers.ModelSerializer):
             'created_at',
             'questions_count',
             'total_plays',
+            'song_categories',
         ]
+
+    def get_song_categories(self, obj):
+        categories = set()
+        for q in obj.questions.all():
+            if q.song and q.song.category:
+                categories.add(q.song.category.name)
+        return list(categories)
 
 
 class QuizSerializer(serializers.ModelSerializer):

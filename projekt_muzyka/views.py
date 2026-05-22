@@ -355,7 +355,9 @@ class QuizList(generics.ListCreateAPIView):
     serializer_class = QuizListSerializer
 
     def get_queryset(self):
-        return Quiz.objects.select_related('genre').annotate(
+        return Quiz.objects.select_related('genre').prefetch_related(
+            'questions__song__category'
+        ).annotate(
             questions_count=Count('questions', distinct=True),
             total_plays=Count('sessions', filter=Q(sessions__finished_at__isnull=False), distinct=True)
         ).filter(is_random=False).all()
