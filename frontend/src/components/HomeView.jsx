@@ -100,7 +100,11 @@ export default function HomeView({
     const [showLeftArrow, setShowLeftArrow] = React.useState(false);
     const [showRightArrow, setShowRightArrow] = React.useState(false);
 
-    const allCategories = ['Wszystkie', ...genres.map(g => g.name)];
+    const allCategories = [
+        'Wszystkie',
+        ...genres.filter(g => g.name.toLowerCase() !== 'inne').map(g => g.name),
+        ...genres.filter(g => g.name.toLowerCase() === 'inne').map(g => g.name)
+    ];
 
     const checkScroll = () => {
         if (categoriesRef.current) {

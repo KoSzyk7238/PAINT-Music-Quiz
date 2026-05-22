@@ -1071,7 +1071,10 @@ function GameView() {
                             >
                               Wszystkie ({getSongsPlural(totalSongsInGenres)})
                             </button>
-                            {genres.map((g) => {
+                            {[
+                              ...genres.filter(g => g.name.toLowerCase() !== 'inne'),
+                              ...genres.filter(g => g.name.toLowerCase() === 'inne')
+                            ].map((g) => {
                               const isSelected = selectedRandomGenreIds.includes(g.id);
                               return (
                                 <button
