@@ -470,8 +470,8 @@ export default function GameSessionView({
                     </div>
                 )}
                 
-                <div className="flex flex-row items-stretch gap-3 w-full relative">
-                    <div className="flex-1 relative">
+                <div className="h-14 sm:h-16 flex flex-row items-stretch gap-3 w-full relative">
+                    <div className="flex-1 relative h-full">
                         <input
                             type="text"
                             placeholder="Zgaduj utwór..."
@@ -484,7 +484,7 @@ export default function GameSessionView({
                             autoCapitalize="none"
                             spellCheck="false"
                             enterKeyHint="send"
-                            className="w-full bg-gray-900/80 border-2 border-gray-700 text-white p-4 sm:p-5 text-lg sm:text-2xl rounded-xl sm:rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all z-20 disabled:opacity-50 h-full"
+                            className="w-full bg-gray-900/80 border-2 border-gray-700 text-white h-full px-4 sm:px-5 text-base sm:text-xl rounded-xl sm:rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all z-20 disabled:opacity-50"
                         />
                         
                         {showSuggestions && (
@@ -531,7 +531,7 @@ export default function GameSessionView({
                             }
                         }}
                         disabled={isSubmitting && !feedback}
-                        className={`flex items-center justify-center rounded-xl sm:rounded-2xl font-black text-lg transition-all z-20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 aspect-square sm:aspect-auto sm:px-8 h-auto border-2 ${
+                        className={`flex items-center justify-center rounded-xl sm:rounded-2xl font-black text-lg transition-all z-20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 w-14 sm:w-auto sm:px-8 h-full border-2 ${
                             feedback 
                               ? 'bg-white text-black hover:bg-gray-200 border-white shadow-[0_4px_15px_rgba(255,255,255,0.3)]' 
                               : inputValue.trim() === ''
@@ -546,7 +546,7 @@ export default function GameSessionView({
                                 : "Zatwierdź odpowiedź"
                         }
                     >
-                        <ChevronRight size={24} className="w-6 h-6 sm:w-8 sm:h-8" />
+                        <ChevronRight size={24} className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
                         <span className="hidden sm:inline ml-2 uppercase tracking-wider">
                             {feedback 
                               ? "Dalej" 

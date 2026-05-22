@@ -81,8 +81,21 @@ class Answer(models.Model):
         return self.answer_text
 
 class GameSession(models.Model):
+    DIFFICULTY_CHOICES = [
+        ('EASY', 'Łatwy'),
+        ('MEDIUM', 'Średni'),
+        ('HARD', 'Trudny'),
+    ]
+    DIFFICULTY_TIME_MAP = {
+        'EASY': 30,
+        'MEDIUM': 15,
+        'HARD': 5,
+    }
+
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sessions")
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="sessions")
+    chosen_difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='MEDIUM', verbose_name="Wybrana trudność")
+    chosen_num_questions = models.IntegerField(default=10, verbose_name="Wybrana liczba pytań")
     started_at = models.DateTimeField(auto_now_add=True, verbose_name="Start")
     finished_at = models.DateTimeField(blank=True, null=True, verbose_name="Koniec")
     total_points = models.IntegerField(default=0, verbose_name="Suma punktow")

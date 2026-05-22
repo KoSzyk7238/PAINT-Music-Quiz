@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Menu, Trophy, Flame, X, Play, Clock, Music, Sparkles, BarChart2 } from 'lucide-react';
+import { Menu, Trophy, Flame, X, Play, Clock, Music, Sparkles, BarChart2, Settings, Zap, Timer, Hash } from 'lucide-react';
+
+const DIFFICULTY_TIME_MAP = { EASY: 30, MEDIUM: 15, HARD: 5 };
+const DIFFICULTY_LABELS = { EASY: 'Łatwy', MEDIUM: 'Średni', HARD: 'Trudny' };
+const QUESTION_PRESETS = [5, 10, 15, 20];
 
 const getPlaceholderGradient = (title) => {
     const gradients = [
@@ -67,6 +71,8 @@ function GameView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Wszystkie');
   const [selectedQuizForPreview, setSelectedQuizForPreview] = useState(null);
+  const [chosenDifficulty, setChosenDifficulty] = useState('MEDIUM');
+  const [chosenNumQuestions, setChosenNumQuestions] = useState(10);
   const [showQuitConfirmation, setShowQuitConfirmation] = useState(false);
   const [wasPlayingBeforeQuitConfirm, setWasPlayingBeforeQuitConfirm] = useState(false);
 
@@ -282,12 +288,18 @@ function GameView() {
 
   const handleSelectQuizForPreview = async (quiz) => {
     setSelectedQuizForPreview(quiz);
+    setChosenDifficulty(quiz.difficulty || 'MEDIUM');
+    setChosenNumQuestions(quiz.num_questions_to_ask || 10);
     setIsLoadingQuizDetail(true);
     try {
       const res = await fetch(`/api/quizzes/${quiz.id}/`);
       if (res.ok) {
         const detailedQuiz = await res.json();
         setSelectedQuizForPreview(detailedQuiz);
+        // Update num questions if quiz detail has more info
+        const maxQ = detailedQuiz.questions?.length || detailedQuiz.questions_count || 10;
+        const defaultNum = detailedQuiz.num_questions_to_ask || 10;
+        setChosenNumQuestions(Math.min(defaultNum, maxQ));
       } else {
         console.error("Failed to load quiz details");
       }
@@ -298,12 +310,15 @@ function GameView() {
     }
   };
 
-  const startSession = async (quiz) => {
+  const startSession = async (quiz, difficulty, numQuestions) => {
     if (nextQuestionTimeoutRef.current) {
         clearTimeout(nextQuestionTimeoutRef.current);
         nextQuestionTimeoutRef.current = null;
     }
     setFeedback(null);
+
+    const sessionDifficulty = difficulty || chosenDifficulty || quiz.difficulty || 'MEDIUM';
+    const sessionTimeLimit = DIFFICULTY_TIME_MAP[sessionDifficulty] || 15;
 
     let fullQuiz = quiz;
     if (!fullQuiz.questions) {
@@ -327,9 +342,14 @@ function GameView() {
     }
 
     const shuffledQuestions = shuffleArray(fullQuiz.questions || []);
-    const limit = fullQuiz.num_questions_to_ask || 10;
+    const limit = numQuestions || chosenNumQuestions || fullQuiz.num_questions_to_ask || 10;
     const limitedQuestions = shuffledQuestions.slice(0, limit);
-    const quizWithShuffled = { ...fullQuiz, questions: limitedQuestions };
+    // Override time_limit on all questions based on chosen difficulty
+    const questionsWithTimeOverride = limitedQuestions.map(q => ({
+      ...q,
+      time_limit: sessionTimeLimit
+    }));
+    const quizWithShuffled = { ...fullQuiz, questions: questionsWithTimeOverride };
 
     setCurrentQuiz(quizWithShuffled);
     setCurrentQuestionIndex(0);
@@ -346,12 +366,16 @@ function GameView() {
       const res = await fetch('/api/sessions/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quiz: fullQuiz.id })
+        body: JSON.stringify({
+          quiz: fullQuiz.id,
+          chosen_difficulty: sessionDifficulty,
+          chosen_num_questions: limit
+        })
       });
       if (res.ok) {
         const data = await res.json();
         setSessionId(data.id);
-        setupQuestion(limitedQuestions[0]);
+        setupQuestion(questionsWithTimeOverride[0]);
       }
     } catch (err) {
       console.error(err);
@@ -844,6 +868,7 @@ function GameView() {
           const coverUrl = getFullCoverUrl(quiz.cover_image);
           const placeholderGrad = getPlaceholderGradient(quiz.title);
           const stats = quiz.stats || { total_plays: 0, average_score_percent: 0.0, average_time_seconds: 0.0, dynamic_difficulty: quiz.difficulty };
+          const maxQuestions = quiz.questions?.length || quiz.questions_count || 20;
 
           return (
             <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col justify-end sm:justify-center p-0 sm:p-4">
@@ -860,12 +885,12 @@ function GameView() {
                 </button>
 
                 {/* Okładka / Gradient (Left Side) */}
-                <div className="w-full md:w-5/12 relative aspect-video md:aspect-auto min-h-[200px] md:min-h-full flex-shrink-0 bg-gray-900 border-b md:border-b-0 md:border-r border-white/5">
+                <div className="w-full md:w-5/12 relative aspect-[16/9] sm:aspect-video md:aspect-auto min-h-[160px] md:min-h-full flex-shrink-0 bg-gray-900 border-b md:border-b-0 md:border-r border-white/5">
                   {coverUrl ? (
                     <img 
                       src={coverUrl} 
                       alt={quiz.title} 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                     />
                   ) : (
                     <div className={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex flex-col justify-between p-8 relative overflow-hidden`}>
@@ -885,37 +910,118 @@ function GameView() {
                 </div>
 
                 {/* Info & Stats (Right Side) */}
-                <div className="w-full md:w-7/12 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto">
+                <div className="w-full md:w-7/12 p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
                   <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-3 opacity-0 animate-fade-in-up">
                       <span className="bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
                         {quiz.genre?.name || 'Miks'}
                       </span>
-                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${
-                        quiz.difficulty === 'EASY' 
-                          ? 'bg-green-950/30 border-green-500/20 text-green-400' 
-                          : quiz.difficulty === 'HARD' 
-                          ? 'bg-red-950/30 border-red-500/20 text-red-400' 
-                          : 'bg-yellow-950/30 border-yellow-500/20 text-yellow-400'
-                      }`}>
-                        {quiz.difficulty === 'EASY' ? 'Łatwy' : quiz.difficulty === 'HARD' ? 'Trudny' : 'Średni'}
-                      </span>
-                      <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider flex items-center gap-1">
-                        <Music size={11} />
-                        {pytaniaPlural(Math.min(quiz.questions_count || quiz.questions?.length || 0, quiz.num_questions_to_ask || 10))}
-                      </span>
                     </div>
 
-                    <h3 className="text-2xl sm:text-3xl font-black text-white mb-2 leading-none uppercase italic tracking-tight">
+                    <h3 className="text-2xl sm:text-3xl font-black text-white mb-2 leading-none uppercase italic tracking-tight opacity-0 animate-fade-in-up-delay-1">
                       {quiz.title}
                     </h3>
 
-                    <p className="text-gray-400 text-sm leading-relaxed mb-6 font-medium">
+                    <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-5 font-medium line-clamp-2 sm:line-clamp-none opacity-0 animate-fade-in-up-delay-2">
                       {quiz.description || "Brak dodatkowego opisu dla tego wyzwania muzycznego. Przygotuj swoje słuchawki!"}
                     </p>
 
+                    {/* ====== USTAWIENIA GRY ====== */}
+                    <div className="bg-gray-900/60 border border-gray-800/80 rounded-2xl p-3 sm:p-5 mb-4 sm:mb-5 flex flex-col gap-4 sm:gap-5 opacity-0 animate-slide-up-fade">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 border-b border-white/5 pb-2 flex items-center gap-1.5">
+                        <Settings size={14} className="text-green-500" />
+                        Ustawienia gry
+                      </h4>
+
+                      {/* Difficulty Selection */}
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 block flex items-center gap-1.5">
+                          <Zap size={12} className="text-yellow-400" />
+                          Poziom trudności
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {['EASY', 'MEDIUM', 'HARD'].map((diff) => {
+                            const isSelected = chosenDifficulty === diff;
+                            const colorMap = {
+                              EASY: {
+                                active: 'bg-green-500/20 border-green-500/60 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)]',
+                                idle: 'bg-gray-900/60 border-gray-700/50 text-gray-500 hover:border-green-500/30 hover:text-green-400/70',
+                                dot: 'bg-green-400',
+                                time: 'text-green-400/80'
+                              },
+                              MEDIUM: {
+                                active: 'bg-yellow-500/20 border-yellow-500/60 text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.2)]',
+                                idle: 'bg-gray-900/60 border-gray-700/50 text-gray-500 hover:border-yellow-500/30 hover:text-yellow-400/70',
+                                dot: 'bg-yellow-400',
+                                time: 'text-yellow-400/80'
+                              },
+                              HARD: {
+                                active: 'bg-red-500/20 border-red-500/60 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]',
+                                idle: 'bg-gray-900/60 border-gray-700/50 text-gray-500 hover:border-red-500/30 hover:text-red-400/70',
+                                dot: 'bg-red-400',
+                                time: 'text-red-400/80'
+                              }
+                            };
+                            const colors = colorMap[diff];
+                            return (
+                              <button
+                                key={diff}
+                                onClick={() => setChosenDifficulty(diff)}
+                                className={`relative flex flex-col items-center gap-0.5 sm:gap-1 py-2.5 sm:py-3 px-1.5 sm:px-2 rounded-xl border transition-all duration-200 cursor-pointer active:scale-95 ${
+                                  isSelected ? colors.active : colors.idle
+                                } ${isSelected ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                              >
+                                {isSelected && (
+                                  <div className="absolute -top-1 -right-1">
+                                    <div className={`w-3 h-3 ${colors.dot} rounded-full border-2 border-gray-950 shadow-lg animate-scale-in`}></div>
+                                    <div className={`absolute inset-0 w-3 h-3 ${colors.dot} rounded-full animate-ping-small`}></div>
+                                  </div>
+                                )}
+                                <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider">
+                                  {DIFFICULTY_LABELS[diff]}
+                                </span>
+                                <span className={`text-[9px] sm:text-[10px] font-bold flex items-center gap-0.5 ${isSelected ? colors.time : 'text-gray-600'}`}>
+                                  <Timer size={9} className="sm:w-[10px] sm:h-[10px]" />
+                                  {DIFFICULTY_TIME_MAP[diff]}s
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Question Count Selection */}
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 block flex items-center gap-1.5">
+                          <Hash size={12} className="text-purple-400" />
+                          Ilość piosenek
+                        </label>
+                        <div className="flex gap-2">
+                          {QUESTION_PRESETS.filter(n => n <= maxQuestions).map((num) => {
+                            const isSelected = chosenNumQuestions === num;
+                            return (
+                              <button
+                                key={num}
+                                onClick={() => setChosenNumQuestions(num)}
+                                className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl border text-sm font-black transition-all duration-200 cursor-pointer active:scale-90 ${
+                                  isSelected 
+                                    ? 'bg-purple-500/20 border-purple-500/60 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.2)] scale-[1.03]' 
+                                    : 'bg-gray-900/60 border-gray-700/50 text-gray-500 hover:border-purple-500/30 hover:text-purple-400/70 hover:scale-[1.01]'
+                                }`}
+                              >
+                                {num}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[10px] text-gray-600 mt-1.5 font-medium">
+                          Dostępnych w quizie: {maxQuestions} {maxQuestions === 1 ? 'piosenka' : maxQuestions < 5 ? 'piosenki' : 'piosenek'}
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Statystyki */}
-                    <div className="bg-gray-900/50 border border-gray-800/80 rounded-2xl p-4 sm:p-5 mb-6 sm:mb-8 flex flex-col gap-4">
+                    <div className="bg-gray-900/50 border border-gray-800/80 rounded-2xl p-4 sm:p-5 mb-5 flex flex-col gap-4 opacity-0 animate-slide-up-fade-delay">
                       <h4 className="text-xs font-black uppercase tracking-widest text-gray-500 border-b border-white/5 pb-2 flex items-center gap-1.5">
                         <BarChart2 size={14} className="text-green-500" />
                         Statystyki społeczności
@@ -983,17 +1089,17 @@ function GameView() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-auto">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-auto">
                     <button 
                       onClick={() => {
-                        startSession(quiz);
+                        startSession(quiz, chosenDifficulty, chosenNumQuestions);
                         setSelectedQuizForPreview(null);
                       }}
                       disabled={isLoadingQuizDetail}
                       className={`flex-grow font-black uppercase tracking-wider py-4 rounded-2xl transition-all flex items-center justify-center gap-2 ${
                         isLoadingQuizDetail 
                           ? 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50' 
-                          : 'bg-green-500 hover:bg-green-400 text-black shadow-[0_0_30px_rgba(34,197,94,0.35)] hover:scale-[1.02] active:scale-[0.98]'
+                          : 'bg-green-500 hover:bg-green-400 text-black animate-glow-pulse hover:scale-[1.02] active:scale-[0.95]'
                       }`}
                     >
                       {isLoadingQuizDetail ? (
