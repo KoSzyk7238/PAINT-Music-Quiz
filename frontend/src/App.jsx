@@ -419,11 +419,8 @@ function GameView() {
         });
       }, 100);
     } else if (isPlaying && timeLeft === 0 && !isSubmitting) {
-      const timeout = setTimeout(() => {
-        setIsPlaying(false);
-        handleAnswerSubmit(''); 
-      }, 0);
-      return () => clearTimeout(timeout);
+      setIsPlaying(false);
+      audioRef.current?.pause();
     }
     return () => clearInterval(timer);
   }, [isPlaying, timeLeft, isSubmitting]);
@@ -449,7 +446,6 @@ function GameView() {
     if (isSubmitting || feedback) return;
     setIsPlaying(false);
     setTimeLeft(0);
-    handleAnswerSubmit('');
   };
 
   const togglePlay = () => {
