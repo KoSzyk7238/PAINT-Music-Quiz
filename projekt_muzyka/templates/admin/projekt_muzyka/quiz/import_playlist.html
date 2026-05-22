@@ -31,47 +31,62 @@
             <div class="help">Publiczny link do playlisty w Apple Music.</div>
           </div>
         </div>
-        
-        <div class="form-row field-title">
-          <div>
-            <label for="id_title">Własny tytuł quizu (opcjonalnie):</label>
-            <input type="text" name="title" id="id_title" class="vTextField" style="width: 400px;" value="{{ title|default:'' }}">
-            <div class="help">Pozostaw puste, aby pobrać tytuł bezpośrednio z playlisty.</div>
-          </div>
-        </div>
 
-        <div class="form-row field-description">
+        <div class="form-row field-existing-quiz">
           <div>
-            <label for="id_description">Własny opis (opcjonalnie):</label>
-            <textarea name="description" id="id_description" class="vLargeTextField" cols="40" rows="3" style="width: 400px;">{{ description|default:'' }}</textarea>
-            <div class="help">Pozostaw puste, aby pobrać opis z playlisty.</div>
-          </div>
-        </div>
-
-        <div class="form-row field-difficulty">
-          <div>
-            <label for="id_difficulty">Poziom trudności:</label>
-            <select name="difficulty" id="id_difficulty">
-              <option value="EASY" {% if difficulty == 'EASY' %}selected{% endif %}>Łatwy</option>
-              <option value="MEDIUM" {% if not difficulty or difficulty == 'MEDIUM' %}selected{% endif %}>Średni</option>
-              <option value="HARD" {% if difficulty == 'HARD' %}selected{% endif %}>Trudny</option>
+            <label for="id_existing_quiz">Dodaj do istniejącego quizu:</label>
+            <select name="quiz_id" id="id_existing_quiz" style="width: 400px; padding: 5px;">
+              <option value="">-- Utwórz nowy quiz --</option>
+              {% for q in quizzes %}
+                <option value="{{ q.id }}" {% if selected_quiz_id == q.id %}selected{% endif %}>{{ q.title }}</option>
+              {% endfor %}
             </select>
+            <div class="help">Wybierz istniejący quiz, aby dodać do niego piosenki, lub wybierz pierwszą opcję, aby utworzyć nowy quiz.</div>
           </div>
         </div>
-
-        <div class="form-row field-num_questions">
-          <div>
-            <label for="id_num_questions">Liczba pytań w jednej grze:</label>
-            <input type="number" name="num_questions_to_ask" id="id_num_questions" value="{{ num_questions_to_ask|default:'10' }}" min="1" required style="width: 100px;">
-            <div class="help">Liczba losowych utworów zadawanych graczowi w pojedynczej rozgrywce.</div>
+        
+        <div id="new-quiz-fields">
+          <div class="form-row field-title">
+            <div>
+              <label for="id_title">Własny tytuł quizu (opcjonalnie):</label>
+              <input type="text" name="title" id="id_title" class="vTextField" style="width: 400px;" value="{{ title|default:'' }}">
+              <div class="help">Pozostaw puste, aby pobrać tytuł bezpośrednio z playlisty.</div>
+            </div>
           </div>
-        </div>
 
-        <div class="form-row field-time_limit">
-          <div>
-            <label for="id_time_limit">Długość odtwarzania utworu (sekundy):</label>
-            <input type="number" name="time_limit" id="id_time_limit" value="{{ time_limit|default:'15' }}" min="1" max="30" required style="width: 100px;">
-            <div class="help">Czas odtwarzania utworu podczas zgadywania (zakres: 1 - 30 sekund).</div>
+          <div class="form-row field-description">
+            <div>
+              <label for="id_description">Własny opis (opcjonalnie):</label>
+              <textarea name="description" id="id_description" class="vLargeTextField" cols="40" rows="3" style="width: 400px;">{{ description|default:'' }}</textarea>
+              <div class="help">Pozostaw puste, aby pobrać opis z playlisty.</div>
+            </div>
+          </div>
+
+          <div class="form-row field-difficulty">
+            <div>
+              <label for="id_difficulty">Poziom trudności:</label>
+              <select name="difficulty" id="id_difficulty">
+                <option value="EASY" {% if difficulty == 'EASY' %}selected{% endif %}>Łatwy</option>
+                <option value="MEDIUM" {% if not difficulty or difficulty == 'MEDIUM' %}selected{% endif %}>Średni</option>
+                <option value="HARD" {% if difficulty == 'HARD' %}selected{% endif %}>Trudny</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row field-num_questions">
+            <div>
+              <label for="id_num_questions">Liczba pytań w jednej grze:</label>
+              <input type="number" name="num_questions_to_ask" id="id_num_questions" value="{{ num_questions_to_ask|default:'10' }}" min="1" required style="width: 100px;">
+              <div class="help">Liczba losowych utworów zadawanych graczowi w pojedynczej rozgrywce.</div>
+            </div>
+          </div>
+
+          <div class="form-row field-time_limit">
+            <div>
+              <label for="id_time_limit">Długość odtwarzania utworu (sekundy):</label>
+              <input type="number" name="time_limit" id="id_time_limit" value="{{ time_limit|default:'15' }}" min="1" max="30" required style="width: 100px;">
+              <div class="help">Czas odtwarzania utworu podczas zgadywania (zakres: 1 - 30 sekund).</div>
+            </div>
           </div>
         </div>
       </fieldset>
@@ -83,4 +98,33 @@
     </div>
   </form>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const quizSelect = document.getElementById('id_existing_quiz');
+    const newQuizFields = document.getElementById('new-quiz-fields');
+    const submitBtn = document.querySelector('input[type="submit"]');
+    const numQuestionsInput = document.getElementById('id_num_questions');
+    const timeLimitInput = document.getElementById('id_time_limit');
+
+    function toggleFields() {
+      if (quizSelect && quizSelect.value) {
+        newQuizFields.style.display = 'none';
+        numQuestionsInput.removeAttribute('required');
+        timeLimitInput.removeAttribute('required');
+        submitBtn.value = 'Importuj do istniejącego quizu';
+      } else if (newQuizFields) {
+        newQuizFields.style.display = 'block';
+        numQuestionsInput.setAttribute('required', '');
+        timeLimitInput.setAttribute('required', '');
+        submitBtn.value = 'Importuj i utwórz quiz';
+      }
+    }
+
+    if (quizSelect) {
+      quizSelect.addEventListener('change', toggleFields);
+      toggleFields(); // Uruchomienie przy pierwszym załadowaniu
+    }
+  });
+</script>
 {% endblock %}

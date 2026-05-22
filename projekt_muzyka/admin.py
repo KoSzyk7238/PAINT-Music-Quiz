@@ -82,13 +82,21 @@ class QuestionInline(admin.TabularInline):
     model = Question
     extra = 1
     fields = ('song', 'points', 'time_limit')
+    autocomplete_fields = ['song']
     show_change_link = True # Pozwala przejść do pytania, żeby dodać odpowiedzi
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('song')
 
 class QuestionAdmin(ImportExportModelAdmin):
     resource_classes = [QuestionResource]
     inlines = [AnswerInline]
     list_display = ('id', 'quiz', 'song', 'points')
     list_filter = ('quiz', 'song')
+    autocomplete_fields = ['song', 'quiz']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('quiz', 'song')
 
 class QuizAdmin(ImportExportModelAdmin):
     resource_classes = [QuizResource]
@@ -97,6 +105,9 @@ class QuizAdmin(ImportExportModelAdmin):
     list_editable = ('num_questions_to_ask', 'time_limit')
     inlines = [QuestionInline]
     change_list_template = "admin/projekt_muzyka/quiz/change_list.html"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('genre')
 
     def get_urls(self):
         from django.urls import path
@@ -120,8 +131,16 @@ class QuizAdmin(ImportExportModelAdmin):
         )
         import random
 
+        quizzes = Quiz.objects.all().order_by('title')
+        context = self.admin_site.each_context(request)
+        context.update({
+            "title": "Importuj z Apple Music",
+            "quizzes": quizzes,
+        })
+
         if request.method == "POST":
             playlist_url = request.POST.get("playlist_url")
+            quiz_id = request.POST.get("quiz_id")
             custom_title = request.POST.get("title")
             custom_description = request.POST.get("description")
             difficulty = request.POST.get("difficulty", "MEDIUM")
@@ -134,14 +153,30 @@ class QuizAdmin(ImportExportModelAdmin):
             except ValueError:
                 time_limit = 15
 
+            selected_quiz_id = None
+            if quiz_id:
+                try:
+                    selected_quiz_id = int(quiz_id)
+                except ValueError:
+                    pass
+
             if not playlist_url:
                 messages.error(request, "Adres URL playlisty jest wymagany.")
-                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html")
+                context.update({
+                    "playlist_url": playlist_url,
+                    "title": custom_title,
+                    "description": custom_description,
+                    "difficulty": difficulty,
+                    "num_questions_to_ask": num_questions_to_ask,
+                    "time_limit": time_limit,
+                    "selected_quiz_id": selected_quiz_id,
+                })
+                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
 
             # Extract track IDs
             track_ids = extract_track_ids_from_playlist_url(playlist_url)
             if not track_ids:
-                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", {
+                context.update({
                     "error": "Nie znaleziono żadnych utworów na podanej playliście. Upewnij się, że jest ona publiczna i poprawna.",
                     "playlist_url": playlist_url,
                     "title": custom_title,
@@ -149,7 +184,9 @@ class QuizAdmin(ImportExportModelAdmin):
                     "difficulty": difficulty,
                     "num_questions_to_ask": num_questions_to_ask,
                     "time_limit": time_limit,
+                    "selected_quiz_id": selected_quiz_id,
                 })
+                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
 
             # Fetch metadata for the playlist name/description if not provided
             playlist_name, playlist_desc = extract_playlist_name_and_desc(playlist_url)
@@ -159,7 +196,7 @@ class QuizAdmin(ImportExportModelAdmin):
             # Fetch track metadata in bulk
             metadata_dict = fetch_multiple_apple_music_metadata(track_ids)
             if not metadata_dict:
-                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", {
+                context.update({
                     "error": "Nie udało się pobrać szczegółowych danych utworów z iTunes API.",
                     "playlist_url": playlist_url,
                     "title": title,
@@ -167,28 +204,52 @@ class QuizAdmin(ImportExportModelAdmin):
                     "difficulty": difficulty,
                     "num_questions_to_ask": num_questions_to_ask,
                     "time_limit": time_limit,
+                    "selected_quiz_id": selected_quiz_id,
                 })
+                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
 
             # Fetch cover image
             cover_data = fetch_playlist_cover_image(playlist_url)
 
             # Database creation in a transaction
             try:
+                existing_quiz = None
+                if selected_quiz_id:
+                    try:
+                        existing_quiz = Quiz.objects.get(id=selected_quiz_id)
+                    except Quiz.DoesNotExist:
+                        messages.error(request, "Wybrany quiz nie istnieje.")
+                        context.update({
+                            "playlist_url": playlist_url,
+                            "title": title,
+                            "description": description,
+                            "difficulty": difficulty,
+                            "num_questions_to_ask": num_questions_to_ask,
+                            "time_limit": time_limit,
+                            "selected_quiz_id": selected_quiz_id,
+                        })
+                        return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
+
                 with transaction.atomic():
-                    # Create the Quiz
-                    quiz = Quiz.objects.create(
-                        title=title,
-                        description=description,
-                        difficulty=difficulty,
-                        num_questions_to_ask=num_questions_to_ask,
-                        time_limit=time_limit,
-                    )
-                    
-                    if cover_data:
-                        quiz.cover_image.save("cover.jpg", ContentFile(cover_data), save=True)
+                    if existing_quiz:
+                        quiz = existing_quiz
+                        if not quiz.cover_image and cover_data:
+                            quiz.cover_image.save("cover.jpg", ContentFile(cover_data), save=True)
+                    else:
+                        # Create the Quiz
+                        quiz = Quiz.objects.create(
+                            title=title,
+                            description=description,
+                            difficulty=difficulty,
+                            num_questions_to_ask=num_questions_to_ask,
+                            time_limit=time_limit,
+                        )
+                        if cover_data:
+                            quiz.cover_image.save("cover.jpg", ContentFile(cover_data), save=True)
 
                     first_genre = None
                     songs_count = 0
+                    skipped_count = 0
 
                     for tid in track_ids:
                         metadata = metadata_dict.get(tid)
@@ -221,6 +282,11 @@ class QuizAdmin(ImportExportModelAdmin):
                                 "apple_snippet_url": preview_url,
                             }
                         )
+
+                        # Zabezpieczenie przed duplikatami piosenek w tym quizie
+                        if Question.objects.filter(quiz=quiz, song=song).exists():
+                            skipped_count += 1
+                            continue
 
                         # Create the Question
                         question = Question.objects.create(
@@ -277,27 +343,38 @@ class QuizAdmin(ImportExportModelAdmin):
 
                         songs_count += 1
 
-                    # Set the genre of the quiz to the genre of the first song
-                    if first_genre:
+                    # Set the genre of the quiz to the genre of the first song if not set
+                    if first_genre and (not existing_quiz or not quiz.genre):
                         quiz.genre = first_genre
                         quiz.save(update_fields=["genre"])
 
-                messages.success(request, f"Pomyślnie zaimportowano playlistę! Utworzono quiz '{quiz.title}' z {songs_count} pytaniami.")
+                if existing_quiz:
+                    msg = f"Pomyślnie dodano piosenki do quizu '{quiz.title}'! Dodano {songs_count} nowych utworów."
+                    if skipped_count > 0:
+                        msg += f" (Pominięto {skipped_count} utworów, które już były w tym quizie)"
+                    messages.success(request, msg)
+                else:
+                    messages.success(request, f"Pomyślnie zaimportowano playlistę! Utworzono quiz '{quiz.title}' z {songs_count} pytaniami.")
                 return redirect("admin:projekt_muzyka_quiz_changelist")
 
             except Exception as e:
                 messages.error(request, f"Wystąpił błąd podczas zapisywania w bazie danych: {str(e)}")
-                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", {
+                context.update({
                     "playlist_url": playlist_url,
                     "title": title,
                     "description": description,
                     "difficulty": difficulty,
                     "num_questions_to_ask": num_questions_to_ask,
+                    "time_limit": time_limit,
+                    "selected_quiz_id": selected_quiz_id,
                 })
+                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
 
-        return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", {
+        context.update({
             "num_questions_to_ask": 10,
+            "time_limit": 15,
         })
+        return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
 
 
 class GenreAdmin(ImportExportModelAdmin):
@@ -356,6 +433,9 @@ class SongAdmin(ImportExportModelAdmin):
     list_filter = ('genre',)
     search_fields = ('title', 'artist')
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('genre')
+
 class UserScoreAdmin(ImportExportModelAdmin):
     list_display = ('user', 'quiz', 'score', 'played_at')
     list_filter = ('quiz', 'user')
@@ -382,6 +462,9 @@ class AnswerAdmin(ImportExportModelAdmin):
     list_display = ('id', 'question', 'answer_text', 'is_correct')
     list_filter = ('is_correct',)
     search_fields = ('answer_text',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('question')
 
 # Custom Admin Backup Views
 def backup_manage_view(request):

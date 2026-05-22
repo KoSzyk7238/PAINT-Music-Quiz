@@ -187,7 +187,6 @@ def extract_playlist_name_and_desc(playlist_url):
             title_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE)
             if title_match:
                 title = title_match.group(1).strip()
-                title = re.sub(r'\s*(?:w|on)\s+Apple\s+Music$', '', title, flags=re.IGNORECASE)
 
             desc_match = re.search(r'<meta[^>]*property="og:description"[^>]*content="([^"]+)"', html)
             if not desc_match:
@@ -197,6 +196,13 @@ def extract_playlist_name_and_desc(playlist_url):
 
             title = html_lib.unescape(title).replace('\u200e', '').replace('\u200f', '').strip()
             description = html_lib.unescape(description).replace('\u200e', '').replace('\u200f', '').strip()
+
+            # Czyszczenie nazwy playlisty z dopisków Apple Music i informacji o autorze
+            title = re.sub(r'\s*(?:w|on)\s+Apple\s+Music$', '', title, flags=re.IGNORECASE)
+            title = re.sub(r'\s*[-–]\s*(?:playlista|playlist)\s+(?:użytkownika|by)\s+.*$', '', title, flags=re.IGNORECASE)
+            title = re.sub(r'\s*[-–]\s*(?:playlista|playlist)\s*$', '', title, flags=re.IGNORECASE)
+            title = re.sub(r'\b(?:playlista\s+użytkownika|playlist\s+by)\s+.*$', '', title, flags=re.IGNORECASE)
+            title = title.strip()
     except Exception:
         pass
     return title, description
