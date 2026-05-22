@@ -991,7 +991,7 @@ function GameView() {
           return (
             <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col justify-end sm:justify-center p-0 sm:p-4">
               <div 
-                className="bg-gray-950 border border-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-3xl sm:mx-auto overflow-hidden shadow-2xl relative flex flex-col md:flex-row text-left max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-full sm:zoom-in duration-300"
+                className="bg-gray-950 border border-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-4xl sm:mx-auto overflow-hidden shadow-2xl relative flex flex-col md:flex-row text-left max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-full sm:zoom-in duration-300"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Close Button */}
@@ -1003,7 +1003,7 @@ function GameView() {
                 </button>
 
                 {/* Okładka / Gradient (Left Side) */}
-                <div className="w-full md:w-5/12 relative aspect-[16/9] sm:aspect-video md:aspect-auto min-h-[160px] md:min-h-full flex-shrink-0 bg-gray-900 border-b md:border-b-0 md:border-r border-white/5">
+                <div className="w-full md:w-1/3 relative aspect-[16/9] sm:aspect-video md:aspect-auto min-h-[160px] md:min-h-full flex-shrink-0 bg-gray-900 border-b md:border-b-0 md:border-r border-white/5">
                   {coverUrl ? (
                     <img 
                       src={coverUrl} 
@@ -1028,7 +1028,7 @@ function GameView() {
                 </div>
 
                 {/* Info & Stats (Right Side) */}
-                <div className="w-full md:w-7/12 p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
+                <div className="w-full md:w-2/3 p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
                   <div>
                     <div className="flex flex-wrap items-center gap-2 mb-3 opacity-0 animate-fade-in-up">
                       <span className="bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
@@ -1062,7 +1062,7 @@ function GameView() {
                             <button
                               type="button"
                               onClick={() => setSelectedRandomGenreIds([])}
-                              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 ${
+                              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                                 selectedRandomGenreIds.length === 0
                                   ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105'
                                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50 hover:scale-102'
@@ -1077,7 +1077,7 @@ function GameView() {
                                   key={g.id}
                                   type="button"
                                   onClick={() => toggleRandomGenreId(g.id)}
-                                  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 ${
+                                  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                                     isSelected
                                       ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105'
                                       : 'text-gray-400 hover:text-white hover:bg-gray-800/50 hover:scale-102'
