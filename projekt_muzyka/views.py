@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Case, When, Value, IntegerField
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
@@ -325,6 +325,14 @@ class SongList(generics.ListCreateAPIView):
         search = self.request.query_params.get("search")
         if search:
             queryset = queryset.filter(Q(title__icontains=search) | Q(artist__icontains=search))
+            queryset = queryset.annotate(
+                relevance=Case(
+                    When(title__istartswith=search, then=Value(1)),
+                    When(artist__istartswith=search, then=Value(2)),
+                    default=Value(3),
+                    output_field=IntegerField(),
+                )
+            ).order_by('relevance', 'title')
         limit = self.request.query_params.get("limit")
         if limit:
             try:

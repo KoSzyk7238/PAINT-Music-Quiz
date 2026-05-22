@@ -57,6 +57,7 @@ function GameView() {
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const [isLoadingQuizDetail, setIsLoadingQuizDetail] = useState(false);
   const [dbSuggestions, setDbSuggestions] = useState([]);
+  const suggestionsCache = useRef({});
   const [currentQuiz, setCurrentQuiz] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [sessionId, setSessionId] = useState(null);
@@ -244,10 +245,16 @@ function GameView() {
       setActiveSuggestionIndex(-1);
   }, [inputValue]);
 
-  // Dynamic fetching of suggestions as the user types (with debounce)
+  // Dynamic fetching of suggestions as the user types (with debounce and caching)
   useEffect(() => {
     if (!inputValue || inputValue.trim().length < 2) {
       setDbSuggestions([]);
+      return;
+    }
+
+    const trimmedValue = inputValue.trim().toLowerCase();
+    if (suggestionsCache.current[trimmedValue]) {
+      setDbSuggestions(suggestionsCache.current[trimmedValue]);
       return;
     }
 
@@ -267,12 +274,14 @@ function GameView() {
               formattedSongs.push({ title: s.title, artist: s.artist || '' });
             }
           });
+          
+          suggestionsCache.current[trimmedValue] = formattedSongs;
           setDbSuggestions(formattedSongs);
         }
       } catch (err) {
         console.error("Error fetching suggestions:", err);
       }
-    }, 100); // 100ms debounce (near-instant feedback)
+    }, 150); // 150ms debounce (near-instant feedback with reduced server hit)
 
     return () => clearTimeout(delayDebounceFn);
   }, [inputValue]);

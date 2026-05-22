@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, X, Volume2, VolumeX, ChevronRight, Music, Flame } from 'lucide-react';
 
 export default function GameSessionView({
@@ -27,6 +27,33 @@ export default function GameSessionView({
     const [songMetadata, setSongMetadata] = useState(null);
     const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
     const [shrinkBar, setShrinkBar] = useState(false);
+
+    const inputRef = useRef(null);
+    const suggestionsContainerRef = useRef(null);
+
+    // Autofocus input at the start of a new question (when feedback is cleared)
+    useEffect(() => {
+        if (!feedback && inputRef.current) {
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [currentQuestionIndex, feedback]);
+
+    // Scroll active suggestion into view
+    useEffect(() => {
+        if (suggestionsContainerRef.current && activeSuggestionIndex >= 0) {
+            const container = suggestionsContainerRef.current;
+            const activeElement = container.children[activeSuggestionIndex];
+            if (activeElement) {
+                activeElement.scrollIntoView({
+                    block: 'nearest',
+                    behavior: 'auto'
+                });
+            }
+        }
+    }, [activeSuggestionIndex]);
 
     const getPlaceholderGradient = (title) => {
         const gradients = [
@@ -473,6 +500,7 @@ export default function GameSessionView({
                 <div className="h-14 sm:h-16 flex flex-row items-stretch gap-3 w-full relative">
                     <div className="flex-1 relative h-full">
                         <input
+                            ref={inputRef}
                             type="text"
                             placeholder="Zgaduj utwór..."
                             value={inputValue}
@@ -488,7 +516,10 @@ export default function GameSessionView({
                         />
                         
                         {showSuggestions && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border-2 border-gray-700 rounded-2xl max-h-60 overflow-y-auto z-30 shadow-2xl backdrop-blur-xl scrollbar-thin">
+                            <div 
+                                ref={suggestionsContainerRef}
+                                className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border-2 border-gray-700 rounded-2xl max-h-60 overflow-y-auto z-30 shadow-2xl backdrop-blur-xl scrollbar-thin"
+                            >
                                 {filteredSuggestions.map((song, index) => (
                                     <div
                                         key={index}

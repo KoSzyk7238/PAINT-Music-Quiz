@@ -14,8 +14,8 @@ class Genre(models.Model):
 
 
 class Song(models.Model):
-    title = models.CharField(max_length=200, verbose_name="Tytul")
-    artist = models.CharField(max_length=200, blank=True, null=True, verbose_name="Artysta")
+    title = models.CharField(max_length=200, db_index=True, verbose_name="Tytul")
+    artist = models.CharField(max_length=200, db_index=True, blank=True, null=True, verbose_name="Artysta")
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, blank=True, null=True, related_name="songs", verbose_name="Gatunek")
     apple_snippet_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="Apple Music snippet")
     audio_file = models.FileField(upload_to="song_audio/", blank=True, null=True, verbose_name="Plik audio")
