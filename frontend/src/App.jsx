@@ -41,6 +41,9 @@ function GameView() {
   // Lokalne statystyki dla obecnej sesji quizu
   const [sessionStreak, setSessionStreak] = useState(0);
   const [sessionPoints, setSessionPoints] = useState(0);
+  const [maxStreak, setMaxStreak] = useState(0);
+  const [fastestCorrectTime, setFastestCorrectTime] = useState(null);
+  const [totalTimeTaken, setTotalTimeTaken] = useState(0);
 
   const [timeLeft, setTimeLeft] = useState(30);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -335,6 +338,9 @@ function GameView() {
     setIsSubmitting(false);
     setSessionStreak(0); // Reset lokalnego streaka
     setSessionPoints(0); // Reset lokalnych punktów
+    setMaxStreak(0);
+    setFastestCorrectTime(null);
+    setTotalTimeTaken(0);
 
     try {
       const res = await fetch('/api/sessions/', {
@@ -538,11 +544,24 @@ function GameView() {
 
         if (res.ok) {
             const data = await res.json();
+            setTotalTimeTaken(prev => prev + timeTaken);
              if (data.is_correct) {
                  if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
-                 setSessionStreak(prev => prev + 1);
+                 setSessionStreak(prev => {
+                     const nextStreak = prev + 1;
+                     setMaxStreak(currentMax => Math.max(currentMax, nextStreak));
+                     return nextStreak;
+                 });
                  setSessionPoints(prev => prev + data.points_awarded);
-                 setFeedback({ type: 'success', text: `DOBRZE! +${data.points_awarded} PKT` });
+                 setFastestCorrectTime(prev => (prev === null ? timeTaken : Math.min(prev, timeTaken)));
+                  setFeedback({ 
+                      type: 'success', 
+                      text: 'DOBRZE!', 
+                      points: data.points_awarded,
+                      correctTitle: question?.song?.title,
+                      correctArtist: question?.song?.artist,
+                      timeTaken
+                  });
 
                  fadeInAudio();
 
@@ -572,12 +591,14 @@ function GameView() {
              } else {
                  if (navigator.vibrate) navigator.vibrate(200);
                  setSessionStreak(0);
-                 setFeedback({ 
-                     type: 'error', 
-                     text: 'ŹLE!',
-                     correctTitle: question?.song?.title,
-                     correctArtist: question?.song?.artist
-                 });
+                  setFeedback({ 
+                      type: 'error', 
+                      text: 'ŹLE!',
+                      points: 0,
+                      correctTitle: question?.song?.title,
+                      correctArtist: question?.song?.artist,
+                      timeTaken
+                  });
 
                  fadeInAudio();
              }
@@ -745,19 +766,7 @@ function GameView() {
             )}
           </div>
 
-          {sessionSummary ? (
-             <SummaryView 
-                sessionSummary={sessionSummary} 
-                currentQuiz={currentQuiz} 
-                isLoggedIn={isLoggedIn}
-                onLoginClick={() => setActiveModal('login')}
-                onRegisterClick={() => setActiveModal('register')}
-                onFinish={() => {
-                    setSessionSummary(null);
-                    setCurrentQuiz(null);
-                }} 
-             />
-          ) : !currentQuiz ? (
+          {!currentQuiz ? (
              <HomeView 
                 apiDebug={apiDebug}
                 searchQuery={searchQuery}
@@ -790,7 +799,25 @@ function GameView() {
                  proceedToNextStep={proceedToNextStep}
                  volume={volume}
                  setVolume={setVolume}
+                 sessionStreak={sessionStreak}
               />
+          )}
+
+          {sessionSummary && (
+             <SummaryView 
+                sessionSummary={sessionSummary} 
+                currentQuiz={currentQuiz} 
+                isLoggedIn={isLoggedIn}
+                maxStreak={maxStreak}
+                fastestCorrectTime={fastestCorrectTime}
+                totalTimeTaken={totalTimeTaken}
+                onLoginClick={() => setActiveModal('login')}
+                onRegisterClick={() => setActiveModal('register')}
+                onFinish={() => {
+                    setSessionSummary(null);
+                    setCurrentQuiz(null);
+                }} 
+             />
           )}
         </div>
 
