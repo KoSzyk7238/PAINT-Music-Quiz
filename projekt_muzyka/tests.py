@@ -621,6 +621,36 @@ class GenreClassificationTests(APITestCase):
         self.assertEqual(song1.category.name, "Rock")
 
 
+class AppleMusicCoverTests(TestCase):
+    @patch('projekt_muzyka.apple_music.requests.get')
+    def test_fetch_playlist_cover_image_success(self, mock_get):
+        from projekt_muzyka.apple_music import fetch_playlist_cover_image
+        from unittest.mock import MagicMock
+
+        # Mocking Apple Music HTML response
+        mock_html_resp = MagicMock()
+        mock_html_resp.status_code = 200
+        mock_html_resp.text = '<html><head><meta property="og:image" content="https://is1-ssl.mzstatic.com/image/thumb/Features125/v4/a9/c8/ef/a9c8ef8b-6d5f-cf40-2ce1-39fbb0ba878a/pr_source.png/1200x630SC.FPESS04-60.jpg?l=pl-PL" /></head></html>'
+        
+        # Mocking Image download response
+        mock_img_resp = MagicMock()
+        mock_img_resp.status_code = 200
+        mock_img_resp.content = b'fake_image_bytes'
+        
+        # Setting side_effect to return HTML response first, then image response
+        mock_get.side_effect = [mock_html_resp, mock_img_resp]
+        
+        cover_content = fetch_playlist_cover_image("https://music.apple.com/pl/playlist/test/pl.123")
+        
+        self.assertEqual(cover_content, b'fake_image_bytes')
+        self.assertEqual(mock_get.call_count, 2)
+        
+        # Verify first call was to playlist page
+        mock_get.assert_any_call("https://music.apple.com/pl/playlist/test/pl.123", headers=mock_get.call_args_list[0][1]['headers'], timeout=5)
+        # Verify second call was to resized square image URL
+        mock_get.assert_any_call("https://is1-ssl.mzstatic.com/image/thumb/Features125/v4/a9/c8/ef/a9c8ef8b-6d5f-cf40-2ce1-39fbb0ba878a/pr_source.png/1000x1000bb.jpg?l=pl-PL", timeout=5)
+
+
 
 
 

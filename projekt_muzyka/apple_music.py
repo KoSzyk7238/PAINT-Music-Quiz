@@ -219,7 +219,18 @@ def fetch_playlist_cover_image(playlist_url):
             img_match = re.search(r'<meta[^>]*property="og:image"[^>]*content="([^"]+)"', html)
             if img_match:
                 img_url = img_match.group(1)
-                img_url = img_url.replace("1200x630bf", "1000x1000bb")
+                # Zamieniamy ostatni segment URL (np. "1200x630SC.FPESS04-60.jpg" lub "1200x630bf.jpg") na "1000x1000bb.jpg"
+                base_url = img_url.split('?')[0]
+                query = img_url.split('?')[1] if '?' in img_url else ''
+                parts = base_url.split('/')
+                if parts and re.search(r'\d+x\d+', parts[-1]):
+                    parts[-1] = "1000x1000bb.jpg"
+                    img_url = "/".join(parts)
+                    if query:
+                        img_url += "?" + query
+                else:
+                    img_url = img_url.replace("1200x630bf", "1000x1000bb")
+
                 img_resp = requests.get(img_url, timeout=5)
                 if img_resp.status_code == 200:
                     return img_resp.content
