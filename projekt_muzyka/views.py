@@ -365,6 +365,7 @@ class QuizDetail(generics.RetrieveUpdateDestroyAPIView):
 class CreateRandomQuizView(APIView):
     def post(self, request, *args, **kwargs):
         genre_id = request.data.get("genre_id")
+        genre_ids = request.data.get("genre_ids")
         difficulty = request.data.get("difficulty", "MEDIUM")
         num_questions = request.data.get("num_questions", 10)
         
@@ -386,8 +387,28 @@ class CreateRandomQuizView(APIView):
         )
 
         songs_qs = Song.objects.all()
-        if genre_id:
-            songs_qs = songs_qs.filter(genre_id=genre_id)
+
+        selected_genre_ids = []
+        if isinstance(genre_ids, list):
+            for gid in genre_ids:
+                try:
+                    selected_genre_ids.append(int(gid))
+                except (ValueError, TypeError):
+                    pass
+        elif genre_ids:
+            try:
+                selected_genre_ids.append(int(genre_ids))
+            except (ValueError, TypeError):
+                pass
+
+        if not selected_genre_ids and genre_id:
+            try:
+                selected_genre_ids.append(int(genre_id))
+            except (ValueError, TypeError):
+                pass
+
+        if selected_genre_ids:
+            songs_qs = songs_qs.filter(genre_id__in=selected_genre_ids)
 
         songs_list = list(songs_qs)
         if not songs_list:

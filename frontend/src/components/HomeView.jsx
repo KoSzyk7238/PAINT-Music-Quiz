@@ -666,17 +666,11 @@ export default function HomeView({
                         </div>
                         
                         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                            <div className="max-w-2xl text-left">
-                                <span className="bg-green-500/10 border border-green-500/25 text-green-400 text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-wider mb-4 inline-block">
-                                    NOWOŚĆ: Tryb Dynamiczny
-                                </span>
-                                <h2 className="text-2xl sm:text-3xl font-black text-white uppercase italic tracking-tight mb-2 flex items-center gap-2">
+                            <div className="text-left">
+                                <h2 className="text-2xl sm:text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-2">
                                     <Sparkles className="text-green-400 animate-pulse" size={24} fill="currentColor" />
-                                    Losowy Quiz na zawołanie
+                                    Losowy Quiz
                                 </h2>
-                                <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
-                                    Chcesz zagrać coś nietypowego? Wybierz swój ulubiony gatunek, poziom trudności oraz liczbę utworów. System automatycznie skomponuje unikalny zestaw pytań z piosenek z bazy danych specjalnie dla Ciebie!
-                                </p>
                             </div>
                             
                             <button 
@@ -687,7 +681,7 @@ export default function HomeView({
                                 className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 text-black font-black uppercase px-6 py-3.5 rounded-2xl transition-all shadow-[0_10px_20px_rgba(34,197,94,0.2)] hover:scale-105 active:scale-95 text-sm sm:text-base self-start md:self-center"
                             >
                                 <Play fill="black" size={16} />
-                                Skonfiguruj quiz
+                                Zagraj
                             </button>
                         </div>
                     </div>

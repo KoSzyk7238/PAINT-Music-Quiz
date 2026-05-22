@@ -86,8 +86,16 @@ function GameView() {
   const [chosenNumQuestions, setChosenNumQuestions] = useState(10);
   const [showQuitConfirmation, setShowQuitConfirmation] = useState(false);
   const [wasPlayingBeforeQuitConfirm, setWasPlayingBeforeQuitConfirm] = useState(false);
+  const [selectedRandomGenreIds, setSelectedRandomGenreIds] = useState([]);
   const [genres, setGenres] = useState([]);
-  const [selectedRandomGenreId, setSelectedRandomGenreId] = useState('');
+
+  const toggleRandomGenreId = (genreId) => {
+    setSelectedRandomGenreIds(prev => 
+      prev.includes(genreId)
+        ? prev.filter(id => id !== genreId)
+        : [...prev, genreId]
+    );
+  };
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -316,8 +324,11 @@ function GameView() {
       const isRandom = selectedQuizForPreview.isRandomQuizPlaceholder;
       const totalSongsInGenres = genres.reduce((acc, g) => acc + (g.songs_count || 0), 0);
       const maxQ = isRandom
-        ? (selectedRandomGenreId 
-            ? (genres.find(g => g.id.toString() === selectedRandomGenreId.toString())?.songs_count || 0)
+        ? (selectedRandomGenreIds.length > 0
+            ? selectedRandomGenreIds.reduce((sum, id) => {
+                const g = genres.find(genre => genre.id.toString() === id.toString());
+                return sum + (g?.songs_count || 0);
+              }, 0)
             : totalSongsInGenres)
         : (selectedQuizForPreview.questions?.length || selectedQuizForPreview.questions_count || 20);
       
@@ -328,7 +339,7 @@ function GameView() {
         setChosenNumQuestions(Math.min(10, maxQ));
       }
     }
-  }, [selectedRandomGenreId, selectedQuizForPreview, genres]);
+  }, [selectedRandomGenreIds, selectedQuizForPreview, genres]);
 
   const shuffleArray = (array) => {
     const newArr = [...array];
@@ -343,7 +354,7 @@ function GameView() {
     setSelectedQuizForPreview(quiz);
     setChosenDifficulty('MEDIUM');
     setChosenNumQuestions(10);
-    setSelectedRandomGenreId(''); // reset genre selection for the new session
+    setSelectedRandomGenreIds([]); // reset genre selection for the new session
     if (quiz.isRandomQuizPlaceholder) {
       setIsLoadingQuizDetail(false);
       return;
@@ -386,7 +397,7 @@ function GameView() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            genre_id: selectedRandomGenreId || null,
+            genre_ids: selectedRandomGenreIds,
             difficulty: sessionDifficulty,
             num_questions: numQuestions
           })
@@ -963,8 +974,11 @@ function GameView() {
           
           const totalSongsInGenres = genres.reduce((acc, g) => acc + (g.songs_count || 0), 0);
           const maxQuestions = quiz.isRandomQuizPlaceholder
-            ? (selectedRandomGenreId 
-                ? (genres.find(g => g.id.toString() === selectedRandomGenreId.toString())?.songs_count || 0)
+            ? (selectedRandomGenreIds.length > 0
+                ? selectedRandomGenreIds.reduce((sum, id) => {
+                    const g = genres.find(genre => genre.id.toString() === id.toString());
+                    return sum + (g?.songs_count || 0);
+                  }, 0)
                 : totalSongsInGenres)
             : (quiz.questions?.length || quiz.questions_count || 20);
 
@@ -1044,24 +1058,35 @@ function GameView() {
                             <Music size={12} className="text-green-400" />
                             Gatunek muzyczny
                           </label>
-                          <div className="relative">
-                            <select
-                              value={selectedRandomGenreId}
-                              onChange={(e) => setSelectedRandomGenreId(e.target.value)}
-                              className="w-full bg-gray-950 border border-gray-800 text-white rounded-xl py-3 px-4 text-xs font-bold focus:outline-none focus:border-green-500 hover:border-gray-700 transition-all duration-200 cursor-pointer appearance-none animate-scale-in"
+                          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto bg-gray-900/40 p-2.5 rounded-2xl border border-gray-850/60 w-full no-scrollbar">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRandomGenreIds([])}
+                              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 ${
+                                selectedRandomGenreIds.length === 0
+                                  ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105'
+                                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50 hover:scale-102'
+                              }`}
                             >
-                              <option value="">Wszystkie gatunki ({getSongsPlural(totalSongsInGenres)})</option>
-                              {genres.map((g) => (
-                                <option key={g.id} value={g.id}>
+                              Wszystkie ({getSongsPlural(totalSongsInGenres)})
+                            </button>
+                            {genres.map((g) => {
+                              const isSelected = selectedRandomGenreIds.includes(g.id);
+                              return (
+                                <button
+                                  key={g.id}
+                                  type="button"
+                                  onClick={() => toggleRandomGenreId(g.id)}
+                                  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 ${
+                                    isSelected
+                                      ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105'
+                                      : 'text-gray-400 hover:text-white hover:bg-gray-800/50 hover:scale-102'
+                                  }`}
+                                >
                                   {g.name} ({getSongsPlural(g.songs_count || 0)})
-                                </option>
-                              ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                              </svg>
-                            </div>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}

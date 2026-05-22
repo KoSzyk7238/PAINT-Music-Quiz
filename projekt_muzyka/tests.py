@@ -504,6 +504,25 @@ class RandomQuizTests(APITestCase):
             song_data = q["song"]
             self.assertEqual(song_data["genre"]["id"], self.genre_pop.id)
 
+    def test_create_random_quiz_endpoint_multiple_genres(self):
+        url = reverse('create-random-quiz')
+        data = {
+            "difficulty": "MEDIUM",
+            "num_questions": 6,
+            "genre_ids": [self.genre_rock.id, self.genre_pop.id]
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["difficulty"], "MEDIUM")
+        self.assertEqual(response.data["num_questions_to_ask"], 6)
+        self.assertEqual(len(response.data["questions"]), 6)
+
+        # Verify all questions belong to either Rock or Pop genre
+        allowed_ids = {self.genre_rock.id, self.genre_pop.id}
+        for q in response.data["questions"]:
+            song_data = q["song"]
+            self.assertIn(song_data["genre"]["id"], allowed_ids)
+
     def test_random_quiz_points_calculation_difficulty_based(self):
         # Create a single song/question/quiz/session structure for EASY
         quiz = Quiz.objects.create(title="Losowy Quiz", is_random=True)
