@@ -424,7 +424,7 @@ export default function HomeView({
                         <button
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
-                            className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 ${
+                            className={`flex-1 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 ${
                                 selectedCategory === cat 
                                 ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105' 
                                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50 hover:scale-102'
