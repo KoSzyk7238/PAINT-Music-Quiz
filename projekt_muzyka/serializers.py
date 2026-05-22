@@ -10,7 +10,7 @@ class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
-        fields = ["id", "name", "slug", "songs_count"]
+        fields = ["id", "name", "slug", "songs_count", "is_category"]
 
     def create(self, validated_data):
         if not validated_data.get("slug"):
@@ -21,6 +21,8 @@ class GenreSerializer(serializers.ModelSerializer):
 class SongSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(read_only=True)
     genre_id = serializers.PrimaryKeyRelatedField(source="genre", queryset=Genre.objects.all(), write_only=True, allow_null=True, required=False)
+    category = GenreSerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(source="category", queryset=Genre.objects.all(), write_only=True, allow_null=True, required=False)
 
     class Meta:
         model = Song
@@ -30,6 +32,8 @@ class SongSerializer(serializers.ModelSerializer):
             "artist",
             "genre",
             "genre_id",
+            "category",
+            "category_id",
             "apple_snippet_url",
             "audio_file",
             "release_year",

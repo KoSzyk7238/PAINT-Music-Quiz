@@ -28,4 +28,8 @@ sleep 3
 echo "Kompilowanie wersji produkcyjnej frontendu (npm run build)..."
 docker compose exec -T frontend npm run build
 
+# 7. Automatyczna retroaktywna klasyfikacja piosenek i quizów
+echo "Klasyfikowanie muzyki i quizów (python manage.py classify_music)..."
+docker compose exec -T backend python manage.py classify_music
+
 echo "=== Wdrożenie zakończone pomyślnie! ==="

@@ -258,7 +258,7 @@ function GameView() {
 
     const fetchGenres = async () => {
       try {
-        const res = await fetch('/api/genres/');
+        const res = await fetch('/api/genres/?show_categories=true');
         if (res.ok) {
           const data = await res.json();
           setGenres(Array.isArray(data) ? data : (data.results || []));

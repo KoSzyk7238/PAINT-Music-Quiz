@@ -554,5 +554,73 @@ class RandomQuizTests(APITestCase):
         self.assertEqual(response.data["points_awarded"], 1550) # EASY (30s limit) calculation
 
 
+class GenreClassificationTests(APITestCase):
+    def test_get_main_category_name(self):
+        from projekt_muzyka.utils import get_main_category_name
+        self.assertEqual(get_main_category_name("Pop Punk"), "Rock")
+        self.assertEqual(get_main_category_name("Latin Pop"), "Latino")
+        self.assertEqual(get_main_category_name("reggaeton"), "Latino")
+        self.assertEqual(get_main_category_name("Hip-Hop/Rap"), "Rap & Hip-Hop")
+        self.assertEqual(get_main_category_name("Deep House"), "Electronic")
+        self.assertEqual(get_main_category_name("Worldwide"), "Inne")
+
+    def test_auto_classify_song_signal(self):
+        genre = Genre.objects.create(name="Dance-Pop", slug="dance-pop")
+        song = Song.objects.create(title="Test Song", artist="Test Artist", genre=genre)
+        # Check signal populated apple_raw_genre and category
+        self.assertEqual(song.apple_raw_genre, "Dance-Pop")
+        self.assertIsNotNone(song.category)
+        self.assertEqual(song.category.name, "Pop")
+        self.assertTrue(song.category.is_category)
+
+    def test_update_quiz_genre_dynamic(self):
+        genre_rock_raw = Genre.objects.create(name="Grunge", slug="grunge")
+        genre_pop_raw = Genre.objects.create(name="Dance-Pop", slug="dance-pop")
+        
+        song1 = Song.objects.create(title="Rock 1", artist="Artist 1", genre=genre_rock_raw) # Category Rock
+        song2 = Song.objects.create(title="Rock 2", artist="Artist 2", genre=genre_rock_raw) # Category Rock
+        song3 = Song.objects.create(title="Pop 1", artist="Artist 3", genre=genre_pop_raw)   # Category Pop
+        
+        quiz = Quiz.objects.create(title="Classification Test Quiz")
+        
+        # Add a Pop song question
+        q1 = Question.objects.create(quiz=quiz, song=song3)
+        quiz.refresh_from_db()
+        self.assertEqual(quiz.genre.name, "Pop")
+        
+        # Add Rock song questions to make Rock the dominant category
+        q2 = Question.objects.create(quiz=quiz, song=song1)
+        quiz.refresh_from_db()
+        self.assertEqual(quiz.genre.name, "Pop") # 1 Pop vs 1 Rock -> Tie picked Pop (alphabetic count order or first)
+        
+        q3 = Question.objects.create(quiz=quiz, song=song2)
+        quiz.refresh_from_db()
+        self.assertEqual(quiz.genre.name, "Rock") # 1 Pop vs 2 Rock -> Rock
+        
+        # Delete a Rock question
+        q3.delete()
+        quiz.refresh_from_db()
+        # 1 Pop vs 1 Rock -> Pop (alphabetical order 'Pop' < 'Rock' wins on tie)
+        self.assertEqual(quiz.genre.name, "Pop")
+
+    def test_classify_music_management_command(self):
+        from django.core.management import call_command
+        genre_rock_raw = Genre.objects.create(name="Grunge", slug="grunge")
+        song1 = Song.objects.create(title="Rock 1", artist="Artist 1", genre=genre_rock_raw)
+        
+        # Clear category to simulate unclassified state
+        Song.objects.filter(id=song1.id).update(category=None)
+        song1.refresh_from_db()
+        self.assertIsNone(song1.category)
+        
+        # Run command
+        call_command('classify_music')
+        
+        song1.refresh_from_db()
+        self.assertIsNotNone(song1.category)
+        self.assertEqual(song1.category.name, "Rock")
+
+
+
 
 

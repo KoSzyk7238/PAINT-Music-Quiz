@@ -139,6 +139,7 @@ class Command(BaseCommand):
                     artist=artist,
                     defaults={
                         "genre": genre,
+                        "apple_raw_genre": genre_name,
                         "release_year": release_year,
                         "apple_snippet_url": preview_url,
                     }

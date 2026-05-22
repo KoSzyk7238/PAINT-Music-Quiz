@@ -308,6 +308,9 @@ class GenreList(generics.ListCreateAPIView):
     serializer_class = GenreSerializer
 
     def get_queryset(self):
+        show_categories = self.request.query_params.get("show_categories") == "true"
+        if show_categories:
+            return Genre.objects.filter(is_category=True).annotate(songs_count=Count('category_songs')).order_by('name')
         return Genre.objects.annotate(songs_count=Count('songs')).order_by('name')
 
 
@@ -408,7 +411,7 @@ class CreateRandomQuizView(APIView):
                 pass
 
         if selected_genre_ids:
-            songs_qs = songs_qs.filter(genre_id__in=selected_genre_ids)
+            songs_qs = songs_qs.filter(category_id__in=selected_genre_ids)
 
         songs_list = list(songs_qs)
         if not songs_list:

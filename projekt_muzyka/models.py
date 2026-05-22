@@ -7,6 +7,7 @@ from django.dispatch import receiver
 class Genre(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Nazwa")
     slug = models.SlugField(max_length=120, unique=True, verbose_name="Slug")
+    is_category = models.BooleanField(default=False, verbose_name="Czy główna kategoria")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data utworzenia")
 
     def __str__(self):
@@ -17,6 +18,15 @@ class Song(models.Model):
     title = models.CharField(max_length=200, db_index=True, verbose_name="Tytul")
     artist = models.CharField(max_length=200, db_index=True, blank=True, null=True, verbose_name="Artysta")
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, blank=True, null=True, related_name="songs", verbose_name="Gatunek")
+    apple_raw_genre = models.CharField(max_length=200, blank=True, null=True, verbose_name="Surowy gatunek Apple Music")
+    category = models.ForeignKey(
+        Genre,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="category_songs",
+        verbose_name="Kategoria główna"
+    )
     apple_snippet_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="Apple Music snippet")
     audio_file = models.FileField(upload_to="song_audio/", blank=True, null=True, verbose_name="Plik audio")
     release_year = models.IntegerField(blank=True, null=True, verbose_name="Rok wydania")
