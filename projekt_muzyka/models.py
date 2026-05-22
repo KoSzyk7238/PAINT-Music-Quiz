@@ -41,6 +41,7 @@ class Quiz(models.Model):
     difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='MEDIUM', verbose_name="Poziom trudności")
     num_questions_to_ask = models.IntegerField(default=10, verbose_name="Liczba pytań w grze")
     time_limit = models.IntegerField(default=15, verbose_name="Długość odtwarzania utworu (sekundy)")
+    is_random = models.BooleanField(default=False, verbose_name="Czy losowy?")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data utworzenia")
 
     def __str__(self):

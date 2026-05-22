@@ -6,9 +6,11 @@ from .apple_music import resolve_preview_url
 
 
 class GenreSerializer(serializers.ModelSerializer):
+    songs_count = serializers.IntegerField(read_only=True, required=False)
+
     class Meta:
         model = Genre
-        fields = ["id", "name", "slug"]
+        fields = ["id", "name", "slug", "songs_count"]
 
     def create(self, validated_data):
         if not validated_data.get("slug"):
@@ -122,7 +124,13 @@ class QuizSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quiz
-        fields = ['id', 'title', 'description', 'cover_image', 'genre', 'genre_id', 'difficulty', 'num_questions_to_ask', 'created_at', 'questions', 'stats']
+        fields = ['id', 'title', 'description', 'cover_image', 'genre', 'genre_id', 'difficulty', 'num_questions_to_ask', 'created_at', 'questions', 'stats', 'is_random']
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        if getattr(instance, 'is_random', False):
+            rep['questions'] = []
+        return rep
 
     def get_stats(self, obj):
         # Use prefetched sessions to avoid database query if prefetch_related is active

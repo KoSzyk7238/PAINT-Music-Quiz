@@ -41,16 +41,22 @@ export default function GameSessionView({
         }
     }, [currentQuestionIndex, feedback]);
 
-    // Scroll active suggestion into view
+    // Scroll active suggestion into view without window scrolling
     useEffect(() => {
         if (suggestionsContainerRef.current && activeSuggestionIndex >= 0) {
             const container = suggestionsContainerRef.current;
             const activeElement = container.children[activeSuggestionIndex];
             if (activeElement) {
-                activeElement.scrollIntoView({
-                    block: 'nearest',
-                    behavior: 'auto'
-                });
+                const containerTop = container.scrollTop;
+                const containerBottom = containerTop + container.clientHeight;
+                const elemTop = activeElement.offsetTop;
+                const elemBottom = elemTop + activeElement.offsetHeight;
+
+                if (elemTop < containerTop) {
+                    container.scrollTop = elemTop;
+                } else if (elemBottom > containerBottom) {
+                    container.scrollTop = elemBottom - container.clientHeight;
+                }
             }
         }
     }, [activeSuggestionIndex]);
@@ -208,7 +214,10 @@ export default function GameSessionView({
 
                     <div className="flex items-center gap-4 sm:gap-8 mb-6 mt-2">
                         <button
-                            onClick={togglePlay}
+                            onClick={(e) => {
+                                togglePlay();
+                                inputRef.current?.focus();
+                            }}
                             disabled={!!feedback || isSubmitting}
                             className={`rounded-full p-4 sm:p-6 transition-all hover:scale-105 shrink-0 ${
                                 isPlaying ? 'bg-yellow-500 hover:bg-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-green-500 hover:bg-green-400 shadow-[0_0_20px_rgba(34,197,94,0.4)]'
@@ -294,7 +303,10 @@ export default function GameSessionView({
                     {/* Volume */}
                     <div className="flex items-center justify-center gap-3 mt-1 opacity-60 hover:opacity-100 transition-opacity duration-300">
                         <button
-                            onClick={() => setVolume(prev => prev > 0 ? 0 : 1)}
+                            onClick={() => {
+                                setVolume(prev => prev > 0 ? 0 : 1);
+                                inputRef.current?.focus();
+                            }}
                             className="text-gray-500 hover:text-gray-300 transition-colors shrink-0"
                             title={volume === 0 ? 'Włącz dźwięk' : 'Wycisz'}
                         >
@@ -306,7 +318,10 @@ export default function GameSessionView({
                             max="1"
                             step="0.01"
                             value={volume}
-                            onChange={(e) => setVolume(parseFloat(e.target.value))}
+                            onChange={(e) => {
+                                setVolume(parseFloat(e.target.value));
+                                inputRef.current?.focus();
+                            }}
                             className="w-32 sm:w-40 h-1.5 bg-gray-700/60 rounded-full appearance-none cursor-pointer
                                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-gray-400 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:hover:bg-green-400 [&::-webkit-slider-thumb]:transition-colors
                                        [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-gray-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:hover:bg-green-400
@@ -526,6 +541,7 @@ export default function GameSessionView({
                                         onClick={() => {
                                             setInputValue(song.title);
                                             setActiveSuggestionIndex(-1);
+                                            inputRef.current?.focus();
                                         }}
                                         className={`p-3 sm:p-4 border-b border-gray-800 last:border-0 cursor-pointer transition-all font-medium text-sm sm:text-lg flex justify-between items-center ${
                                             index === activeSuggestionIndex 

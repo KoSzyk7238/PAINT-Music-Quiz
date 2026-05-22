@@ -453,4 +453,87 @@ class GameSessionAttemptTests(APITestCase):
         self.assertEqual(response.data["is_correct"], True)
 
 
+class RandomQuizTests(APITestCase):
+    def setUp(self):
+        self.genre_rock = Genre.objects.create(name="Rock", slug="rock")
+        self.genre_pop = Genre.objects.create(name="Pop", slug="pop")
+
+        # Create rock songs
+        for i in range(5):
+            Song.objects.create(title=f"Rock Song {i}", artist=f"Rock Artist {i}", genre=self.genre_rock)
+
+        # Create pop songs
+        for i in range(5):
+            Song.objects.create(title=f"Pop Song {i}", artist=f"Pop Artist {i}", genre=self.genre_pop)
+
+    def test_create_random_quiz_endpoint(self):
+        # 1. POST to create-random with 3 questions, no genre
+        url = reverse('create-random-quiz')
+        data = {
+            "difficulty": "EASY",
+            "num_questions": 3
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["title"], "Losowy Quiz")
+        self.assertEqual(response.data["difficulty"], "EASY")
+        self.assertEqual(response.data["num_questions_to_ask"], 3)
+        self.assertEqual(len(response.data["questions"]), 3)
+
+        quiz_id_1 = response.data["id"]
+
+        # Verify database has the quiz with is_random=True
+        quiz = Quiz.objects.get(id=quiz_id_1)
+        self.assertTrue(quiz.is_random)
+
+        # 2. Call again with 5 questions and Pop genre to check reuse of the quiz record
+        data_pop = {
+            "difficulty": "HARD",
+            "num_questions": 5,
+            "genre_id": self.genre_pop.id
+        }
+        response_pop = self.client.post(url, data_pop, format="json")
+        self.assertEqual(response_pop.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response_pop.data["id"], quiz_id_1) # Reused!
+        self.assertEqual(response_pop.data["difficulty"], "HARD")
+        self.assertEqual(response_pop.data["num_questions_to_ask"], 5)
+        self.assertEqual(len(response_pop.data["questions"]), 5)
+
+        # Verify all questions in response_pop are Pop genre songs
+        for q in response_pop.data["questions"]:
+            song_data = q["song"]
+            self.assertEqual(song_data["genre"]["id"], self.genre_pop.id)
+
+    def test_random_quiz_points_calculation_difficulty_based(self):
+        # Create a single song/question/quiz/session structure for EASY
+        quiz = Quiz.objects.create(title="Losowy Quiz", is_random=True)
+        song = Song.objects.get(title="Rock Song 0")
+        question = Question.objects.create(quiz=quiz, song=song)
+        # Note: GameSession attempt POST creates an attempt
+        # Let's create game session with EASY difficulty
+        session = GameSession.objects.create(quiz=quiz, chosen_difficulty="EASY")
+
+        # Submit attempt: time_taken = 16 seconds.
+        # If difficulty EASY (time_limit = 30):
+        # grace_period = 2.0. ratio = (16 - 2) / (30 - 2) = 14 / 28 = 0.5.
+        # delta = (3000 - 100) * 0.5 = 1450.
+        # score = 3000 - 1450 = 1550.
+        #
+        # If difficulty default/medium (time_limit = 15):
+        # time_taken = 16 is clamped to 15. ratio = (15 - 2) / (15 - 2) = 1.0.
+        # score = 100.
+        
+        url = reverse('session-attempts', kwargs={'session_id': session.id})
+        data = {
+            "question_id": question.id,
+            "answer_text": "Rock Song 0",
+            "time_taken_seconds": 16
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["is_correct"], True)
+        self.assertEqual(response.data["points_awarded"], 1550) # EASY (30s limit) calculation
+
+
+
 

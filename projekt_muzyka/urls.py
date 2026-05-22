@@ -16,6 +16,7 @@ urlpatterns = [
     path('songs/<int:pk>/', views.SongDetail.as_view(), name='song-detail'),
 
     path('quizzes/', views.QuizList.as_view(), name='quiz-list'),
+    path('quizzes/create-random/', views.CreateRandomQuizView.as_view(), name='create-random-quiz'),
     path('quizzes/create-from-artist/', views.CreateQuizFromArtistView.as_view(), name='create-quiz-from-artist'),
     path('quizzes/<int:quiz_id>/add-song/', views.AddSongToQuizView.as_view(), name='quiz-add-song'),
     path('quizzes/<int:pk>/', views.QuizDetail.as_view(), name='quiz-detail'),

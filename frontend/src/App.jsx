@@ -22,6 +22,16 @@ const getPlaceholderGradient = (title) => {
     return gradients[sum % gradients.length];
 };
 
+const getSongsPlural = (n) => {
+    if (n === 1) return `${n} utwór`;
+    const lastDigit = n % 10;
+    const lastTwo = n % 100;
+    if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) {
+        return `${n} utwory`;
+    }
+    return `${n} utworów`;
+};
+
 import Stats from './components/Stats';
 import Friends from './components/Friends';
 import Profile from './components/Profile';
@@ -76,6 +86,8 @@ function GameView() {
   const [chosenNumQuestions, setChosenNumQuestions] = useState(10);
   const [showQuitConfirmation, setShowQuitConfirmation] = useState(false);
   const [wasPlayingBeforeQuitConfirm, setWasPlayingBeforeQuitConfirm] = useState(false);
+  const [genres, setGenres] = useState([]);
+  const [selectedRandomGenreId, setSelectedRandomGenreId] = useState('');
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -236,8 +248,21 @@ function GameView() {
       }
     };
 
+    const fetchGenres = async () => {
+      try {
+        const res = await fetch('/api/genres/');
+        if (res.ok) {
+          const data = await res.json();
+          setGenres(Array.isArray(data) ? data : (data.results || []));
+        }
+      } catch (err) {
+        console.error("Failed to fetch genres:", err);
+      }
+    };
+
     fetchProfile();
     fetchQuizzes();
+    fetchGenres();
   }, []);
 
   // Reset indeksu podpowiedzi przy zmianie tekstu
@@ -286,7 +311,26 @@ function GameView() {
     return () => clearTimeout(delayDebounceFn);
   }, [inputValue]);
 
-  const shuffleArray = (array) => {
+  useEffect(() => {
+    if (selectedQuizForPreview) {
+      const isRandom = selectedQuizForPreview.isRandomQuizPlaceholder;
+      const totalSongsInGenres = genres.reduce((acc, g) => acc + (g.songs_count || 0), 0);
+      const maxQ = isRandom
+        ? (selectedRandomGenreId 
+            ? (genres.find(g => g.id.toString() === selectedRandomGenreId.toString())?.songs_count || 0)
+            : totalSongsInGenres)
+        : (selectedQuizForPreview.questions?.length || selectedQuizForPreview.questions_count || 20);
+      
+      // Clamp chosenNumQuestions to maxQ
+      if (chosenNumQuestions > maxQ) {
+        setChosenNumQuestions(maxQ > 0 ? Math.min(10, maxQ) : 0);
+      } else if (chosenNumQuestions === 0 && maxQ > 0) {
+        setChosenNumQuestions(Math.min(10, maxQ));
+      }
+    }
+  }, [selectedRandomGenreId, selectedQuizForPreview, genres]);
+
+  const shuffleArray = (array) => { {
     const newArr = [...array];
     for (let i = newArr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -297,8 +341,13 @@ function GameView() {
 
   const handleSelectQuizForPreview = async (quiz) => {
     setSelectedQuizForPreview(quiz);
-    setChosenDifficulty(quiz.difficulty || 'MEDIUM');
-    setChosenNumQuestions(quiz.num_questions_to_ask || 10);
+    setChosenDifficulty('MEDIUM');
+    setChosenNumQuestions(10);
+    setSelectedRandomGenreId(''); // reset genre selection for the new session
+    if (quiz.isRandomQuizPlaceholder) {
+      setIsLoadingQuizDetail(false);
+      return;
+    }
     setIsLoadingQuizDetail(true);
     try {
       const res = await fetch(`/api/quizzes/${quiz.id}/`);
@@ -330,7 +379,35 @@ function GameView() {
     const sessionTimeLimit = DIFFICULTY_TIME_MAP[sessionDifficulty] || 15;
 
     let fullQuiz = quiz;
-    if (!fullQuiz.questions) {
+    if (quiz.isRandomQuizPlaceholder) {
+      setIsLoadingQuizDetail(true);
+      try {
+        const res = await fetch('/api/quizzes/create-random/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            genre_id: selectedRandomGenreId || null,
+            difficulty: sessionDifficulty,
+            num_questions: numQuestions
+          })
+        });
+        if (res.ok) {
+          fullQuiz = await res.json();
+        } else {
+          const errData = await res.json();
+          console.error("Failed to generate random quiz:", errData.error);
+          alert(errData.error || "Wystąpił błąd podczas generowania losowego quizu.");
+          setIsLoadingQuizDetail(false);
+          return;
+        }
+      } catch (err) {
+        console.error("Error generating random quiz:", err);
+        setIsLoadingQuizDetail(false);
+        return;
+      } finally {
+        setIsLoadingQuizDetail(false);
+      }
+    } else if (!fullQuiz.questions) {
       setIsLoadingQuizDetail(true);
       try {
         const res = await fetch(`/api/quizzes/${quiz.id}/`);
@@ -695,12 +772,18 @@ function GameView() {
 
   const handleKeyDown = (e) => {
       if (e.key === 'ArrowDown') {
-          if (showSuggestions && activeSuggestionIndex < filteredSuggestions.length - 1) {
-              setActiveSuggestionIndex(prev => prev + 1);
+          if (showSuggestions) {
+              e.preventDefault();
+              if (activeSuggestionIndex < filteredSuggestions.length - 1) {
+                  setActiveSuggestionIndex(prev => prev + 1);
+              }
           }
       } else if (e.key === 'ArrowUp') {
-          if (showSuggestions && activeSuggestionIndex > 0) {
-              setActiveSuggestionIndex(prev => prev - 1);
+          if (showSuggestions) {
+              e.preventDefault();
+              if (activeSuggestionIndex > 0) {
+                  setActiveSuggestionIndex(prev => prev - 1);
+              }
           }
       } else if (e.key === 'Tab') {
           if (showSuggestions && activeSuggestionIndex >= 0) {
@@ -877,7 +960,19 @@ function GameView() {
           const coverUrl = getFullCoverUrl(quiz.cover_image);
           const placeholderGrad = getPlaceholderGradient(quiz.title);
           const stats = quiz.stats || { total_plays: 0, average_score_percent: 0.0, average_time_seconds: 0.0, dynamic_difficulty: quiz.difficulty };
-          const maxQuestions = quiz.questions?.length || quiz.questions_count || 20;
+          
+          const totalSongsInGenres = genres.reduce((acc, g) => acc + (g.songs_count || 0), 0);
+          const maxQuestions = quiz.isRandomQuizPlaceholder
+            ? (selectedRandomGenreId 
+                ? (genres.find(g => g.id.toString() === selectedRandomGenreId.toString())?.songs_count || 0)
+                : totalSongsInGenres)
+            : (quiz.questions?.length || quiz.questions_count || 20);
+
+          const presets = [...QUESTION_PRESETS.filter(n => n <= maxQuestions)];
+          if (maxQuestions > 0 && !presets.includes(maxQuestions) && maxQuestions <= 30) {
+            presets.push(maxQuestions);
+            presets.sort((a, b) => a - b);
+          }
 
           return (
             <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col justify-end sm:justify-center p-0 sm:p-4">
@@ -941,6 +1036,35 @@ function GameView() {
                         <Settings size={14} className="text-green-500" />
                         Ustawienia gry
                       </h4>
+
+                      {/* Gatunek muzyczny (tylko dla losowego quizu) */}
+                      {quiz.isRandomQuizPlaceholder && (
+                        <div>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 block flex items-center gap-1.5">
+                            <Music size={12} className="text-green-400" />
+                            Gatunek muzyczny
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={selectedRandomGenreId}
+                              onChange={(e) => setSelectedRandomGenreId(e.target.value)}
+                              className="w-full bg-gray-950 border border-gray-800 text-white rounded-xl py-3 px-4 text-xs font-bold focus:outline-none focus:border-green-500 hover:border-gray-700 transition-all duration-200 cursor-pointer appearance-none animate-scale-in"
+                            >
+                              <option value="">Wszystkie gatunki ({getSongsPlural(totalSongsInGenres)})</option>
+                              {genres.map((g) => (
+                                <option key={g.id} value={g.id}>
+                                  {g.name} ({getSongsPlural(g.songs_count || 0)})
+                                </option>
+                              ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Difficulty Selection */}
                       <div>
@@ -1006,7 +1130,7 @@ function GameView() {
                           Ilość piosenek
                         </label>
                         <div className="flex gap-2">
-                          {QUESTION_PRESETS.filter(n => n <= maxQuestions).map((num) => {
+                          {presets.map((num) => {
                             const isSelected = chosenNumQuestions === num;
                             return (
                               <button
@@ -1104,9 +1228,9 @@ function GameView() {
                         startSession(quiz, chosenDifficulty, chosenNumQuestions);
                         setSelectedQuizForPreview(null);
                       }}
-                      disabled={isLoadingQuizDetail}
+                      disabled={isLoadingQuizDetail || maxQuestions === 0}
                       className={`flex-grow font-black uppercase tracking-wider py-4 rounded-2xl transition-all flex items-center justify-center gap-2 ${
-                        isLoadingQuizDetail 
+                        (isLoadingQuizDetail || maxQuestions === 0)
                           ? 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50' 
                           : 'bg-green-500 hover:bg-green-400 text-black animate-glow-pulse hover:scale-[1.02] active:scale-[0.95]'
                       }`}
@@ -1115,6 +1239,10 @@ function GameView() {
                         <>
                           <div className="w-5 h-5 border-2 border-gray-600 border-t-green-500 rounded-full animate-spin"></div>
                           Wczytywanie...
+                        </>
+                      ) : maxQuestions === 0 ? (
+                        <>
+                          Brak utworów
                         </>
                       ) : (
                         <>

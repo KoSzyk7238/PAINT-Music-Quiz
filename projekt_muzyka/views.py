@@ -305,8 +305,10 @@ class ProfileView(APIView):
 
 
 class GenreList(generics.ListCreateAPIView):
-    queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+
+    def get_queryset(self):
+        return Genre.objects.annotate(songs_count=Count('songs')).order_by('name')
 
 
 class GenreDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -353,11 +355,83 @@ class QuizList(generics.ListCreateAPIView):
         return Quiz.objects.select_related('genre').annotate(
             questions_count=Count('questions', distinct=True),
             total_plays=Count('sessions', filter=Q(sessions__finished_at__isnull=False), distinct=True)
-        ).all()
+        ).filter(is_random=False).all()
 
 class QuizDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Quiz.objects.prefetch_related('sessions', 'sessions__attempts', 'questions', 'questions__answers', 'questions__song', 'questions__song__genre', 'genre').all()
     serializer_class = QuizSerializer
+
+
+class CreateRandomQuizView(APIView):
+    def post(self, request, *args, **kwargs):
+        genre_id = request.data.get("genre_id")
+        difficulty = request.data.get("difficulty", "MEDIUM")
+        num_questions = request.data.get("num_questions", 10)
+        
+        try:
+            num_questions = int(num_questions)
+        except (ValueError, TypeError):
+            num_questions = 10
+
+        # Get or create the permanent random quiz
+        quiz, created = Quiz.objects.get_or_create(
+            title="Losowy Quiz",
+            is_random=True,
+            defaults={
+                "description": "Losowy quiz generowany na zawołanie.",
+                "difficulty": difficulty,
+                "num_questions_to_ask": num_questions,
+                "time_limit": 15,
+            }
+        )
+
+        songs_qs = Song.objects.all()
+        if genre_id:
+            songs_qs = songs_qs.filter(genre_id=genre_id)
+
+        songs_list = list(songs_qs)
+        if not songs_list:
+            return Response(
+                {"error": "Nie znaleziono piosenek spełniających kryteria."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        actual_num_questions = min(num_questions, len(songs_list))
+        selected_songs = random.sample(songs_list, actual_num_questions)
+
+        new_questions = []
+        for song in selected_songs:
+            question, q_created = Question.objects.get_or_create(
+                quiz=quiz,
+                song=song,
+                defaults={
+                    "question_text": "Zgadnij tytuł tej piosenki",
+                    "points": 1,
+                    "min_points": 0,
+                }
+            )
+            if q_created:
+                # Create correct answers
+                Answer.objects.create(
+                    question=question,
+                    answer_text=song.title,
+                    is_correct=True,
+                )
+                if song.artist:
+                    Answer.objects.create(
+                        question=question,
+                        answer_text=f"{song.title} - {song.artist}",
+                        is_correct=True,
+                    )
+            new_questions.append(question)
+
+        serializer = QuizSerializer(quiz)
+        data = serializer.data
+        data['questions'] = QuestionSerializer(new_questions, many=True).data
+        data['difficulty'] = difficulty
+        data['num_questions_to_ask'] = actual_num_questions
+
+        return Response(data, status=status.HTTP_201_CREATED)
 
 class QuestionList(generics.ListCreateAPIView):
     serializer_class = QuestionSerializer
@@ -459,7 +533,8 @@ class GameSessionAttemptCreate(APIView):
                 else:
                     break
             
-            base_points = calculate_time_score(question.points, question.min_points, time_taken_seconds, question.final_time_limit)
+            session_time_limit = GameSession.DIFFICULTY_TIME_MAP.get(session.chosen_difficulty, 15)
+            base_points = calculate_time_score(question.points, question.min_points, time_taken_seconds, session_time_limit)
             bonus_multiplier = 1.0 + min(consecutive_correct * 0.1, 1.0)
             points_awarded = int(base_points * bonus_multiplier)
 
