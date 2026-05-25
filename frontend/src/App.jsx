@@ -813,6 +813,17 @@ function GameView() {
                   setActiveSuggestionIndex(prev => prev - 1);
               }
           }
+      } else if (e.key === 'Tab') {
+          if (showSuggestions) {
+              e.preventDefault();
+              const suggestion = activeSuggestionIndex >= 0
+                  ? filteredSuggestions[activeSuggestionIndex]
+                  : filteredSuggestions[0];
+              if (suggestion) {
+                  setInputValue(suggestion.title);
+                  setActiveSuggestionIndex(-1);
+              }
+          }
       } else if (e.key === 'Enter') {
           e.stopPropagation();
           if (feedback) {
