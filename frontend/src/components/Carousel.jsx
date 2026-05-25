@@ -85,7 +85,9 @@ export default function Carousel({ title, icon: Icon, children }) {
             <div className="relative w-full">
                 {showLeftArrow && (
                     <button 
+                        type="button"
                         onClick={() => scroll('left')}
+                        aria-label={`Przewiń sekcję ${title || 'quizów'} w lewo`}
                         className="absolute left-0 sm:-left-5 top-1/2 -translate-y-1/2 z-30 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-white p-3 sm:p-4 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300 hover:scale-110 active:scale-95 opacity-0 group-hover/carousel:opacity-100 hidden md:block"
                         title="Przewiń w lewo"
                     >
@@ -120,7 +122,9 @@ export default function Carousel({ title, icon: Icon, children }) {
 
                 {showRightArrow && (
                     <button 
+                        type="button"
                         onClick={() => scroll('right')}
+                        aria-label={`Przewiń sekcję ${title || 'quizów'} w prawo`}
                         className="absolute right-0 sm:-right-5 top-1/2 -translate-y-1/2 z-30 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-white p-3 sm:p-4 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300 hover:scale-110 active:scale-95 opacity-0 group-hover/carousel:opacity-100 hidden md:block"
                         title="Przewiń w prawo"
                     >

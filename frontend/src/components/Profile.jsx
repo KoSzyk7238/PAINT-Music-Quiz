@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Camera, ArrowLeft, KeyRound, UserMinus, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import AuthModal from './AuthModal';
+import useDialogFocus from '../hooks/useDialogFocus';
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -31,6 +32,12 @@ export default function Profile() {
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [deleteError, setDeleteError] = useState(null);
     const [activeModal, setActiveModal] = useState(null);
+    const closeDeleteModal = React.useCallback(() => {
+        setShowDeleteModal(false);
+        setDeleteConfirmPassword('');
+        setDeleteError(null);
+    }, []);
+    const deleteDialogRef = useDialogFocus(showDeleteModal, closeDeleteModal);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -196,12 +203,14 @@ export default function Profile() {
                     </p>
                     <div className="flex flex-col gap-4 w-full">
                         <button 
+                            type="button"
                             onClick={() => setActiveModal('login')}
                             className="w-full py-4 bg-green-500 text-black font-black uppercase tracking-wider rounded-xl hover:bg-green-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_10px_20px_rgba(34,197,94,0.2)]"
                         >
                             Zaloguj się
                         </button>
                         <button 
+                            type="button"
                             onClick={() => setActiveModal('register')}
                             className="w-full py-4 bg-transparent border-2 border-gray-700 text-white font-bold uppercase tracking-wider rounded-xl hover:border-green-500 transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
@@ -239,14 +248,19 @@ export default function Profile() {
                 <div className="bg-gray-900/40 p-6 sm:p-10 rounded-2xl sm:rounded-[32px] border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex flex-col md:flex-row gap-10 items-center">
                     
                     {/* Upload Avatara */}
-                    <div className="relative group cursor-pointer shrink-0" onClick={handleAvatarClick}>
-                        <input 
-                            type="file" 
-                            ref={fileInputRef} 
-                            onChange={handleAvatarChange} 
-                            style={{ display: 'none' }} 
-                            accept="image/*" 
-                        />
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleAvatarChange} 
+                        style={{ display: 'none' }} 
+                        accept="image/*" 
+                    />
+                    <button
+                        type="button"
+                        className="relative group cursor-pointer shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-500"
+                        onClick={handleAvatarClick}
+                        aria-label="Zmień avatar"
+                    >
                         <div className="w-48 h-48 rounded-full bg-black border-4 border-green-500/30 overflow-hidden shadow-[0_0_20px_rgba(34,197,94,0.2)] flex items-center justify-center transition-all duration-300 group-hover:border-green-500 group-hover:shadow-[0_0_30px_rgba(34,197,94,0.4)]">
                             {avatarPreview ? (
                                 <img src={avatarPreview} alt="Podgląd" className="w-full h-full object-cover" />
@@ -259,7 +273,7 @@ export default function Profile() {
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full bg-black/40">
                             <Camera size={44} className="text-green-400 drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]" />
                         </div>
-                    </div>
+                    </button>
 
                     {/* Inputs profilowe */}
                     <form 
@@ -268,33 +282,37 @@ export default function Profile() {
                     >
                         <h2 className="text-2xl font-black italic uppercase tracking-wider text-gray-400">Dane Użytkownika</h2>
                         
-                        {error && <div className="text-red-500 text-sm font-bold bg-red-900/20 p-3 rounded-xl border border-red-500/30 text-center">{error}</div>}
+                        {error && <div role="alert" className="text-red-500 text-sm font-bold bg-red-900/20 p-3 rounded-xl border border-red-500/30 text-center">{error}</div>}
                         {successMsg && (
-                            <div className="text-green-500 text-sm font-bold bg-green-950/30 p-3 rounded-xl border border-green-500/30 flex items-center justify-center gap-2">
+                            <div role="status" className="text-green-500 text-sm font-bold bg-green-950/30 p-3 rounded-xl border border-green-500/30 flex items-center justify-center gap-2">
                                 <CheckCircle2 size={16} /> {successMsg}
                             </div>
                         )}
 
                         <div className="flex flex-col gap-2">
-                            <label className="text-green-500 text-xs font-bold uppercase tracking-widest pl-1">
+                            <label htmlFor="profile-username" className="text-green-500 text-xs font-bold uppercase tracking-widest pl-1">
                                 Login (Nazwa unikalna)
                             </label>
                             <input
+                                id="profile-username"
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
+                                autoComplete="username"
                                 className="w-full p-4 bg-black border-2 border-gray-800 rounded-xl text-white focus:border-green-500 focus:shadow-[0_0_15px_rgba(34,197,94,0.15)] outline-none transition-all font-medium"
                             />
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <label className="text-green-500 text-xs font-bold uppercase tracking-widest pl-1">
+                            <label htmlFor="profile-display-name" className="text-green-500 text-xs font-bold uppercase tracking-widest pl-1">
                                 Nazwa Wyświetlana
                             </label>
                             <input
+                                id="profile-display-name"
                                 type="text"
                                 value={displayName}
                                 onChange={(e) => setDisplayName(e.target.value)}
+                                autoComplete="name"
                                 className="w-full p-4 bg-black border-2 border-gray-800 rounded-xl text-white focus:border-green-500 focus:shadow-[0_0_15px_rgba(34,197,94,0.15)] outline-none transition-all font-medium"
                             />
                         </div>
@@ -316,40 +334,46 @@ export default function Profile() {
                     </div>
 
                     <form onSubmit={handleChangePassword} className="flex flex-col gap-5">
-                        {passwordError && <div className="text-red-500 text-sm font-bold bg-red-900/20 p-3 rounded-xl border border-red-500/30 text-center">{passwordError}</div>}
+                        {passwordError && <div role="alert" className="text-red-500 text-sm font-bold bg-red-900/20 p-3 rounded-xl border border-red-500/30 text-center">{passwordError}</div>}
                         {passwordSuccess && (
-                            <div className="text-green-500 text-sm font-bold bg-green-950/30 p-3 rounded-xl border border-green-500/30 flex items-center justify-center gap-2">
+                            <div role="status" className="text-green-500 text-sm font-bold bg-green-950/30 p-3 rounded-xl border border-green-500/30 flex items-center justify-center gap-2">
                                 <CheckCircle2 size={16} /> {passwordSuccess}
                             </div>
                         )}
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                             <div className="flex flex-col gap-2">
-                                <label className="text-gray-400 text-xs font-bold uppercase tracking-widest pl-1">Obecne Hasło</label>
+                                <label htmlFor="profile-old-password" className="text-gray-400 text-xs font-bold uppercase tracking-widest pl-1">Obecne Hasło</label>
                                 <input
+                                    id="profile-old-password"
                                     type="password"
                                     value={oldPassword}
                                     onChange={(e) => setOldPassword(e.target.value)}
+                                    autoComplete="current-password"
                                     required
                                     className="p-4 bg-black border-2 border-gray-800 rounded-xl text-white focus:border-green-500 outline-none transition-all"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <label className="text-gray-400 text-xs font-bold uppercase tracking-widest pl-1">Nowe Hasło</label>
+                                <label htmlFor="profile-new-password" className="text-gray-400 text-xs font-bold uppercase tracking-widest pl-1">Nowe Hasło</label>
                                 <input
+                                    id="profile-new-password"
                                     type="password"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
+                                    autoComplete="new-password"
                                     required
                                     className="p-4 bg-black border-2 border-gray-800 rounded-xl text-white focus:border-green-500 outline-none transition-all"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <label className="text-gray-400 text-xs font-bold uppercase tracking-widest pl-1">Powtórz Nowe Hasło</label>
+                                <label htmlFor="profile-confirm-password" className="text-gray-400 text-xs font-bold uppercase tracking-widest pl-1">Powtórz Nowe Hasło</label>
                                 <input
+                                    id="profile-confirm-password"
                                     type="password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
+                                    autoComplete="new-password"
                                     required
                                     className="p-4 bg-black border-2 border-gray-800 rounded-xl text-white focus:border-green-500 outline-none transition-all"
                                 />
@@ -377,6 +401,7 @@ export default function Profile() {
                             Usunięcie konta jest **nieodwracalne**. Wszystkie Twoje statystyki, seria zwycięstw (streak) oraz historia rozegranych gier zostaną trwale usunięte z bazy danych.
                         </div>
                         <button
+                            type="button"
                             onClick={() => setShowDeleteModal(true)}
                             className="px-8 py-4 bg-red-600/80 border border-red-500/40 text-white font-black rounded-xl hover:bg-red-500 hover:scale-105 transition-all shadow-[0_5px_15px_rgba(239,68,68,0.2)] uppercase tracking-wider whitespace-nowrap active:scale-95"
                         >
@@ -389,22 +414,31 @@ export default function Profile() {
 
             {/* --- MODAL POTWIERDZENIA USUNIĘCIA KONTA --- */}
             {showDeleteModal && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={closeDeleteModal}>
                     <form 
                         onSubmit={(e) => { e.preventDefault(); handleDeleteAccount(); }}
+                        ref={deleteDialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="delete-account-title"
+                        aria-describedby="delete-account-description"
+                        tabIndex={-1}
                         className="bg-gray-900 border-2 border-red-500/30 p-6 sm:p-10 rounded-2xl sm:rounded-3xl max-w-md w-full flex flex-col gap-6 shadow-[0_0_50px_rgba(239,68,68,0.25)] animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex flex-col items-center text-center gap-3">
                             <ShieldAlert className="text-red-500" size={60} />
-                            <h3 className="text-2xl font-black uppercase text-white tracking-tight">Czy jesteś pewien?</h3>
-                            <p className="text-gray-400 text-sm">
+                            <h3 id="delete-account-title" className="text-2xl font-black uppercase text-white tracking-tight">Czy jesteś pewien?</h3>
+                            <p id="delete-account-description" className="text-gray-400 text-sm">
                                 Aby potwierdzić całkowite i trwałe usunięcie konta, wprowadź swoje obecne hasło poniżej.
                             </p>
                         </div>
 
-                        {deleteError && <div className="text-red-500 text-sm font-bold text-center bg-red-950/30 p-2 rounded-lg border border-red-500/20">{deleteError}</div>}
+                        {deleteError && <div role="alert" className="text-red-500 text-sm font-bold text-center bg-red-950/30 p-2 rounded-lg border border-red-500/20">{deleteError}</div>}
 
+                        <label htmlFor="delete-account-password" className="sr-only">Hasło do potwierdzenia usunięcia konta</label>
                         <input
+                            id="delete-account-password"
                             type="password"
                             placeholder="Wpisz hasło..."
                             value={deleteConfirmPassword}
@@ -416,11 +450,7 @@ export default function Profile() {
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                             <button
                                 type="button"
-                                onClick={() => {
-                                    setShowDeleteModal(false);
-                                    setDeleteConfirmPassword('');
-                                    setDeleteError(null);
-                                }}
+                                onClick={closeDeleteModal}
                                 className="flex-grow py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700 transition-colors uppercase tracking-wider text-sm"
                             >
                                 Anuluj

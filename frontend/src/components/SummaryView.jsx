@@ -14,6 +14,7 @@ import {
     Frown, 
     Music 
 } from 'lucide-react';
+import useDialogFocus from '../hooks/useDialogFocus';
 
 export default function SummaryView({ 
     sessionSummary, 
@@ -26,6 +27,8 @@ export default function SummaryView({
     fastestCorrectTime,
     totalTimeTaken
 }) {
+    const summaryDialogRef = useDialogFocus(true, onFinish);
+
     useEffect(() => {
         const handleEnter = (e) => {
             if (e.key === 'Enter') {
@@ -48,11 +51,9 @@ export default function SummaryView({
         if (ratio === 100) {
             return (
                 <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 px-5 py-2 sm:px-6 sm:py-2.5 rounded-full shadow-[0_0_25px_rgba(234,179,8,0.2)] animate-pulse shrink-0">
-                    <Sparkles className="text-yellow-400 animate-spin duration-3000 shrink-0 hidden xs:inline" size={16} />
                     <Crown className="text-yellow-400 animate-glow-pulse shrink-0" size={24} fill="currentColor" />
                     <span className="text-xs sm:text-sm font-black text-yellow-400 uppercase tracking-widest">Perfekcyjnie!</span>
                     <Crown className="text-yellow-400 animate-glow-pulse shrink-0" size={24} fill="currentColor" />
-                    <Sparkles className="text-yellow-400 animate-spin duration-3000 shrink-0 hidden xs:inline" size={16} />
                 </div>
             );
         }
@@ -115,17 +116,25 @@ export default function SummaryView({
                     animation: glow-pulse 2s ease-in-out infinite;
                 }
             `}</style>
-            <div className="bg-gradient-to-b from-gray-900/95 to-black border-2 border-green-500/30 rounded-3xl max-w-2xl w-full p-5 sm:p-8 flex flex-col shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-300 shadow-[0_0_50px_rgba(34,197,94,0.15)] z-50">
+            <div
+                ref={summaryDialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="summary-title"
+                aria-describedby="summary-description"
+                tabIndex={-1}
+                className="bg-gradient-to-b from-gray-900/95 to-black border-2 border-green-500/30 rounded-3xl max-w-2xl w-full p-5 sm:p-8 flex flex-col shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto scrollbar-thin animate-in zoom-in-95 duration-300 shadow-[0_0_50px_rgba(34,197,94,0.15)] z-50"
+            >
                 
                 {/* Header */}
                 <div className="flex flex-col items-center text-center mb-6 mt-2 relative z-10 shrink-0">
                     <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/30 mb-3 shadow-[0_0_20px_rgba(34,197,94,0.1)]">
                         <Trophy className="text-green-500" size={32} />
                     </div>
-                    <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-white mb-1">
+                    <h2 id="summary-title" className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-white mb-1">
                         Koniec Quizu!
                     </h2>
-                    <p className="text-xs sm:text-sm text-gray-400 font-medium mb-3">
+                    <p id="summary-description" className="text-xs sm:text-sm text-gray-400 font-medium mb-3">
                         Ukończyłeś quiz: <span className="text-green-400 font-bold">{currentQuiz?.title || 'Muzyczny Quiz'}</span>
                     </p>
 
@@ -207,6 +216,7 @@ export default function SummaryView({
                 <div className="w-full relative z-10 shrink-0">
                     {isLoggedIn ? (
                         <button
+                            type="button"
                             onClick={onFinish}
                             className="w-full font-black py-4 px-6 rounded-xl uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 border-2 bg-green-500 border-green-500 hover:bg-green-400 text-black shadow-[0_4px_15px_rgba(34,197,94,0.3)] hover:shadow-[0_4px_20px_rgba(34,197,94,0.5)]"
                         >
@@ -230,12 +240,14 @@ export default function SummaryView({
                             
                             <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-1">
                                 <button
+                                    type="button"
                                     onClick={onLoginClick}
                                     className="py-3 px-4 bg-green-500 text-black font-black uppercase text-xs tracking-wider rounded-xl hover:bg-green-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_5px_15px_rgba(34,197,94,0.2)]"
                                 >
                                     Zaloguj się
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={onRegisterClick}
                                     className="py-3 px-4 bg-transparent border-2 border-gray-800 text-white font-bold uppercase text-xs tracking-wider rounded-xl hover:border-green-500 transition-all hover:scale-[1.02] active:scale-[0.98]"
                                 >
@@ -244,6 +256,7 @@ export default function SummaryView({
                             </div>
 
                             <button
+                                type="button"
                                 onClick={onFinish}
                                 className="text-gray-400 hover:text-white transition-colors text-xs font-medium uppercase tracking-wider mt-1 flex items-center justify-center gap-1"
                             >

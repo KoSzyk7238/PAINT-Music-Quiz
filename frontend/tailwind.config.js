@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        xs: '420px',
+      },
       keyframes: {
         'ping-small': {
           '0%': { transform: 'scale(1)', opacity: '1' },
@@ -44,4 +47,4 @@ export default {
     },
   },
   plugins: [],
-}
+}

@@ -41,7 +41,12 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, setActiveModa
         >
             <div className="p-6 flex justify-between items-center border-b border-white/5">
                 <span className="text-xl font-bold text-green-500 uppercase tracking-widest">Menu</span>
-                <button onClick={() => setIsSidebarOpen(false)} className="hover:rotate-90 transition-transform duration-300">
+                <button
+                    type="button"
+                    onClick={() => setIsSidebarOpen(false)}
+                    aria-label="Zamknij menu"
+                    className="hover:rotate-90 transition-transform duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-500 rounded-full"
+                >
                     <X size={32} />
                 </button>
             </div>
@@ -65,6 +70,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, setActiveModa
 
                     <div className="p-8 flex flex-col gap-4">
                         <button
+                            type="button"
                             onClick={handleLogout}
                             className="w-full py-3 border-2 border-gray-700 text-white font-bold rounded-xl hover:border-red-500 transition-all active:scale-95"
                         >
@@ -75,12 +81,14 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, setActiveModa
             ) : (
                 <div className="p-8 flex flex-col gap-4">
                     <button
+                        type="button"
                         onClick={() => setActiveModal('login')}
                         className="w-full py-3 bg-green-500 text-black font-black uppercase tracking-tighter rounded-xl hover:bg-green-400 transition-all active:scale-95"
                     >
                         Zaloguj się
                     </button>
                     <button
+                        type="button"
                         onClick={() => setActiveModal('register')}
                         className="w-full py-3 border-2 border-gray-700 text-white font-bold rounded-xl hover:border-green-500 transition-all active:scale-95"
                     >
@@ -90,7 +98,10 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, setActiveModa
             )}
 
             <nav className="flex-1 p-8 flex flex-col gap-8 text-3xl font-black italic uppercase tracking-tighter">
-                <Link to="/stats" onClick={() => setIsSidebarOpen(false)} className="text-white hover:text-green-500 transition-colors">Stats</Link>
+                {user && (
+                    <Link to="/profile" onClick={() => setIsSidebarOpen(false)} className="text-white hover:text-green-500 transition-colors">Profil</Link>
+                )}
+                <Link to="/stats" onClick={() => setIsSidebarOpen(false)} className="text-white hover:text-green-500 transition-colors">Statystyki</Link>
                 <Link to="/friends" onClick={() => setIsSidebarOpen(false)} className="text-white hover:text-green-500 transition-colors">Ranking</Link>
             </nav>
         </div>

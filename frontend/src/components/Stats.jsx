@@ -61,12 +61,14 @@ export default function Stats() {
                     </p>
                     <div className="flex flex-col gap-4 w-full">
                         <button 
+                            type="button"
                             onClick={() => setActiveModal('login')}
                             className="w-full py-4 bg-green-500 text-black font-black uppercase tracking-wider rounded-xl hover:bg-green-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_10px_20px_rgba(34,197,94,0.2)]"
                         >
                             Zaloguj się
                         </button>
                         <button 
+                            type="button"
                             onClick={() => setActiveModal('register')}
                             className="w-full py-4 bg-transparent border-2 border-gray-700 text-white font-bold uppercase tracking-wider rounded-xl hover:border-green-500 transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
@@ -175,6 +177,8 @@ export default function Stats() {
                             {genre_distribution.length > 0 ? (
                                 <>
                                     <div
+                                        role="img"
+                                        aria-label="Rozkład gatunków muzycznych według liczby odpowiedzi"
                                         className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)] shrink-0"
                                         style={{ background: `conic-gradient(${genreGradient})` }}
                                     >
@@ -206,6 +210,8 @@ export default function Stats() {
                             {decadeEntries.length > 0 ? (
                                 <>
                                     <div
+                                        role="img"
+                                        aria-label="Rozkład trafności według dekad"
                                         className="w-48 h-48 rounded-full relative flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)] shrink-0"
                                         style={{ background: `conic-gradient(${decadeGradient})` }}
                                     >

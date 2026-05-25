@@ -232,10 +232,11 @@ export default function HomeView({
         const placeholderGrad = getPlaceholderGradient(quiz.title);
 
         return (
-            <div 
+            <button
+                type="button"
                 key={quiz.id} 
                 onClick={() => startSession(quiz)}
-                className="w-full group cursor-pointer relative rounded-2xl overflow-hidden border border-white/5 bg-gray-950 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-300 transform hover:-translate-y-2 hover:z-20"
+                className="w-full text-left group cursor-pointer relative rounded-2xl overflow-hidden border border-white/5 bg-gray-950 hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-300 transform hover:-translate-y-2 hover:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-500"
             >
                 {/* Aspect ratio box for Netflix look */}
                 <div className="aspect-[16/10] relative w-full overflow-hidden">
@@ -303,7 +304,7 @@ export default function HomeView({
                         </span>
                     </div>
                 </div>
-            </div>
+            </button>
         );
     };
 
@@ -334,7 +335,7 @@ export default function HomeView({
                 </div>
 
                 {/* Pasek gatunków - szkielet szeroki na całą stronę */}
-                <div className="relative w-full mb-12 bg-gray-900/40 p-2 rounded-2xl border border-gray-850/60 h-14 animate-pulse flex gap-2 items-center overflow-hidden">
+                <div className="relative w-full mb-12 bg-gray-900/40 p-2 rounded-2xl border border-gray-800/60 h-14 animate-pulse flex gap-2 items-center overflow-hidden">
                     <div className="h-8 w-24 bg-gray-900/60 rounded-xl"></div>
                     <div className="h-8 w-20 bg-gray-900/60 rounded-xl"></div>
                     <div className="h-8 w-28 bg-gray-900/60 rounded-xl"></div>
@@ -394,10 +395,12 @@ export default function HomeView({
                 </div>
 
                 <div className="relative w-full md:w-80">
+                    <label htmlFor="quiz-search" className="sr-only">Szukaj quizu</label>
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <Search className="text-gray-500" size={18} />
                     </div>
                     <input
+                        id="quiz-search"
                         type="text"
                         placeholder="Szukaj quizu..."
                         value={searchQuery}
@@ -411,7 +414,9 @@ export default function HomeView({
             <div className="relative w-full mb-12 group/categories">
                 {showLeftArrow && (
                     <button 
+                        type="button"
                         onClick={() => scrollCategories('left')}
+                        aria-label="Przewiń kategorie w lewo"
                         className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-gray-400 p-2.5 rounded-full shadow-2xl transition-all duration-200 hover:scale-110 active:scale-95 animate-in fade-in duration-200"
                         title="Przewiń w lewo"
                     >
@@ -422,12 +427,14 @@ export default function HomeView({
                 <div 
                     ref={categoriesRef}
                     onScroll={checkScroll}
-                    className="flex gap-2 overflow-x-auto no-scrollbar items-center bg-gray-900/40 p-2 rounded-2xl border border-gray-850/60 w-full scroll-smooth"
+                    className="flex gap-2 overflow-x-auto no-scrollbar items-center bg-gray-900/40 p-2 rounded-2xl border border-gray-800/60 w-full scroll-smooth"
                 >
                     {allCategories.map(cat => (
                         <button
+                            type="button"
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
+                            aria-pressed={selectedCategory === cat}
                             className={`flex-1 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 ${
                                 selectedCategory === cat 
                                 ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105' 
@@ -441,7 +448,9 @@ export default function HomeView({
 
                 {showRightArrow && (
                     <button 
+                        type="button"
                         onClick={() => scrollCategories('right')}
+                        aria-label="Przewiń kategorie w prawo"
                         className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-gray-400 p-2.5 rounded-full shadow-2xl transition-all duration-200 hover:scale-110 active:scale-95 animate-in fade-in duration-200"
                         title="Przewiń w prawo"
                     >
@@ -544,16 +553,8 @@ export default function HomeView({
                                     return (
                                         <div 
                                             key={quiz.id}
-                                            onClick={(e) => {
-                                                if (isDraggingMove) {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    return;
-                                                }
-                                                startSession(quiz);
-                                            }}
                                             style={slideStyle}
-                                            className={`absolute inset-0 w-full h-full cursor-pointer flex items-end rounded-3xl overflow-hidden ${transitionClass} ${visibilityClass}`}
+                                            className={`absolute inset-0 w-full h-full flex items-end rounded-3xl overflow-hidden ${transitionClass} ${visibilityClass}`}
                                         >
                                             {/* Background Image / Gradient */}
                                             {coverUrl ? (
@@ -592,6 +593,7 @@ export default function HomeView({
 
                                                 <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                                                     <button 
+                                                        type="button"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (isDraggingMove) return;
@@ -616,20 +618,24 @@ export default function HomeView({
                             {heroQuizzes.length > 1 && (
                                 <>
                                     <button 
+                                        type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setActiveHeroIndex(prev => (prev - 1 + heroQuizzes.length) % heroQuizzes.length);
                                         }}
+                                        aria-label="Poprzedni slajd"
                                         className="absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-white p-3 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300 hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center cursor-pointer"
                                         title="Poprzedni slajd"
                                     >
                                         <ChevronLeft size={24} />
                                     </button>
                                     <button 
+                                        type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setActiveHeroIndex(prev => (prev + 1) % heroQuizzes.length);
                                         }}
+                                        aria-label="Następny slajd"
                                         className="absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-gray-950/90 hover:bg-green-500 hover:text-black border border-white/10 hover:border-green-500 text-white p-3 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.8)] transition-all duration-300 hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center cursor-pointer"
                                         title="Następny slajd"
                                     >
@@ -643,11 +649,14 @@ export default function HomeView({
                                 <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-8 z-20 flex gap-2">
                                     {heroQuizzes.map((_, idx) => (
                                         <button
+                                            type="button"
                                             key={idx}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setActiveHeroIndex(idx);
                                             }}
+                                            aria-label={`Pokaż slajd ${idx + 1}`}
+                                            aria-pressed={idx === activeHeroIndex}
                                             className={`h-2.5 rounded-full transition-all duration-300 ${
                                                 idx === activeHeroIndex 
                                                     ? 'w-8 bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]' 
@@ -663,8 +672,7 @@ export default function HomeView({
 
                     {/* Baner Losowego Quizu na żądanie */}
                     <div 
-                        onClick={() => startSession({ id: 'random', title: 'Losowy Quiz', isRandomQuizPlaceholder: true })}
-                        className="w-full relative rounded-3xl overflow-hidden border border-green-500/20 bg-gradient-to-r from-green-950/40 via-gray-900/60 to-black p-8 sm:p-10 cursor-pointer group hover:border-green-500/40 hover:shadow-[0_0_30px_rgba(34,197,94,0.1)] transition-all duration-300 transform hover:-translate-y-1"
+                        className="w-full relative rounded-3xl overflow-hidden border border-green-500/20 bg-gradient-to-r from-green-950/40 via-gray-900/60 to-black p-8 sm:p-10 group hover:border-green-500/40 hover:shadow-[0_0_30px_rgba(34,197,94,0.1)] transition-all duration-300 transform hover:-translate-y-1"
                     >
                         {/* Glow effect */}
                         <div className="absolute right-0 top-0 w-80 h-80 bg-green-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-green-500/10 transition-colors duration-500"></div>
@@ -681,6 +689,7 @@ export default function HomeView({
                             </div>
                             
                             <button 
+                                type="button"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     startSession({ id: 'random', title: 'Losowy Quiz', isRandomQuizPlaceholder: true });

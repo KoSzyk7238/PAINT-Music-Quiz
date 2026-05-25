@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, X, Volume2, VolumeX, ChevronRight, Music, Flame } from 'lucide-react';
+import useDialogFocus from '../hooks/useDialogFocus';
 
 export default function GameSessionView({
     currentQuiz,
@@ -30,6 +31,7 @@ export default function GameSessionView({
 
     const inputRef = useRef(null);
     const suggestionsContainerRef = useRef(null);
+    const feedbackDialogRef = useDialogFocus(!!feedback, proceedToNextStep);
 
     // Autofocus input at the start of a new question (when feedback is cleared)
     useEffect(() => {
@@ -186,11 +188,18 @@ export default function GameSessionView({
     const streakProps = getStreakLevelProps(sessionStreak);
     const question = currentQuiz?.questions?.[currentQuestionIndex];
     const totalTimeLimit = question?.time_limit || 30;
+    const answerInputId = 'answer-input';
+    const suggestionsListId = 'song-suggestions';
+    const activeSuggestionId = activeSuggestionIndex >= 0 ? `song-suggestion-${activeSuggestionIndex}` : undefined;
     const isGracePeriod = (totalTimeLimit - timeLeft) <= 2.0 && timeLeft > 0;
     const isTimeRunningOut = timeLeft <= (totalTimeLimit <= 8 ? totalTimeLimit * 0.3 : 5) && timeLeft > 0 && !isGracePeriod;
     const gracePercent = Math.min(80, (2.0 / totalTimeLimit) * 100);
-    const progressPercent = (timeLeft / totalTimeLimit) * 100;
-    const progressScale = progressPercent > 0 ? (10000 / progressPercent) : 100;
+    const nonGracePercent = 100 - gracePercent;
+    const progressPercent = Math.max(0, Math.min(100, (timeLeft / totalTimeLimit) * 100));
+    const activeMainPercent = Math.min(progressPercent, nonGracePercent);
+    const activeGracePercent = Math.max(0, progressPercent - nonGracePercent);
+    const progressTransition = isPlaying ? 'width 100ms linear' : 'none';
+    const formatTimerValue = (seconds) => `0:${Math.max(0, Math.ceil(seconds)).toString().padStart(2, '0')}`;
 
     return (
         <div className="w-full">
@@ -199,7 +208,9 @@ export default function GameSessionView({
                     {/* Top control bar: absolute on desktop, in-flow on mobile */}
                     <div className="flex justify-between items-center w-full mb-6 sm:mb-2">
                         <button
+                            type="button"
                             onClick={onQuit}
+                            aria-label="Przerwij quiz i wróć do menu"
                             className="sm:absolute sm:-top-4 sm:-left-4 flex items-center gap-2 bg-red-950/80 hover:bg-red-900 text-red-400 hover:text-red-200 border-2 border-red-900/50 px-4 py-2 rounded-full font-black text-sm uppercase tracking-widest shadow-lg transition-all active:scale-95 z-10"
                             title="Przerwij quiz i wróć do menu"
                         >
@@ -214,11 +225,13 @@ export default function GameSessionView({
 
                     <div className="flex items-center gap-4 sm:gap-8 mb-6 mt-2">
                         <button
+                            type="button"
                             onClick={(e) => {
                                 togglePlay();
                                 inputRef.current?.focus();
                             }}
                             disabled={!!feedback || isSubmitting}
+                            aria-label={isPlaying ? 'Pauzuj fragment audio' : 'Odtwórz fragment audio'}
                             className={`rounded-full p-4 sm:p-6 transition-all hover:scale-105 shrink-0 ${
                                 isPlaying ? 'bg-yellow-500 hover:bg-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-green-500 hover:bg-green-400 shadow-[0_0_20px_rgba(34,197,94,0.4)]'
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -247,7 +260,7 @@ export default function GameSessionView({
                                                 ? 'text-red-500'
                                                 : 'text-white'
                                     }`}>
-                                        0:{Math.ceil(timeLeft) < 10 ? `0${Math.ceil(timeLeft)}` : Math.ceil(timeLeft)}
+                                        {formatTimerValue(timeLeft)}
                                     </span>
                                     {isGracePeriod && isPlaying && (
                                         <span className="text-[10px] font-black bg-yellow-400 text-black px-2 py-0.5 rounded-full uppercase tracking-widest mt-1 animate-pulse">
@@ -255,38 +268,37 @@ export default function GameSessionView({
                                         </span>
                                     )}
                                 </div>
-                                <span>0:{totalTimeLimit}</span>
+                                <span>{formatTimerValue(totalTimeLimit)}</span>
                             </div>
-                            <div 
-                                className="w-full h-4 bg-gray-800 rounded-full overflow-hidden relative"
-                                style={{
-                                    background: `linear-gradient(to right, rgb(31, 41, 55) 0%, rgb(31, 41, 55) ${100 - gracePercent}%, rgba(250, 204, 21, 0.3) ${100 - gracePercent}%, rgba(250, 204, 21, 0.3) 100%)`
-                                }}
-                            >
+                            <div className="w-full h-4 bg-gray-800 rounded-full overflow-hidden relative">
+                                <div
+                                    className="absolute inset-y-0 right-0 bg-yellow-400/30"
+                                    style={{ width: `${gracePercent}%` }}
+                                />
                                 <div 
                                     className="absolute top-0 bottom-0 w-1 bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)] z-20"
                                     style={{ right: `${gracePercent}%` }}
                                     title="Koniec bezpiecznego czasu (2 sekundy)"
                                 ></div>
                                 <div
-                                    className="absolute inset-y-0 left-0 right-0"
+                                    className={`absolute inset-y-0 left-0 ${
+                                        isTimeRunningOut ? 'bg-red-500' : 'bg-green-500'
+                                    }`}
                                     style={{
-                                        clipPath: `inset(0 ${100 - progressPercent}% 0 0)`,
-                                        transition: isPlaying ? 'clip-path 100ms linear' : 'none',
-                                        background: `linear-gradient(to right, ${
-                                            isTimeRunningOut 
-                                                ? 'rgb(239, 68, 68)' 
-                                                : 'rgb(34, 197, 94)'
-                                        } 0%, ${
-                                            isTimeRunningOut 
-                                                ? 'rgb(239, 68, 68)' 
-                                                : 'rgb(34, 197, 94)'
-                                        } ${100 - gracePercent}%, rgb(250, 204, 21) ${100 - gracePercent}%, rgb(250, 204, 21) 100%)`,
+                                        width: `${activeMainPercent}%`,
+                                        transition: progressTransition,
                                         boxShadow: isTimeRunningOut 
                                             ? '0 0 15px rgba(239,68,68,0.6)' 
-                                            : isGracePeriod
-                                                ? '0 0 15px rgba(250,204,21,0.6)'
-                                                : '0 0 10px rgba(34,197,94,0.6)'
+                                            : '0 0 10px rgba(34,197,94,0.6)'
+                                    }}
+                                ></div>
+                                <div
+                                    className="absolute inset-y-0 bg-yellow-400 z-10"
+                                    style={{
+                                        left: `${nonGracePercent}%`,
+                                        width: `${activeGracePercent}%`,
+                                        transition: progressTransition,
+                                        boxShadow: isGracePeriod ? '0 0 15px rgba(250,204,21,0.6)' : undefined
                                     }}
                                 ></div>
                             </div>
@@ -303,10 +315,12 @@ export default function GameSessionView({
                     {/* Volume */}
                     <div className="flex items-center justify-center gap-3 mt-1 opacity-60 hover:opacity-100 transition-opacity duration-300">
                         <button
+                            type="button"
                             onClick={() => {
                                 setVolume(prev => prev > 0 ? 0 : 1);
                                 inputRef.current?.focus();
                             }}
+                            aria-label={volume === 0 ? 'Włącz dźwięk' : 'Wycisz dźwięk'}
                             className="text-gray-500 hover:text-gray-300 transition-colors shrink-0"
                             title={volume === 0 ? 'Włącz dźwięk' : 'Wycisz'}
                         >
@@ -318,6 +332,7 @@ export default function GameSessionView({
                             max="1"
                             step="0.01"
                             value={volume}
+                            aria-label="Głośność"
                             onChange={(e) => {
                                 setVolume(parseFloat(e.target.value));
                                 inputRef.current?.focus();
@@ -330,7 +345,7 @@ export default function GameSessionView({
                     </div>
                     
                     {audioDebug && (
-                        <div className="text-red-400 text-sm font-bold text-center mt-2 bg-red-900/30 p-2 rounded-lg">
+                        <div role="alert" className="text-red-400 text-sm font-bold text-center mt-2 bg-red-900/30 p-2 rounded-lg">
                             {audioDebug}
                         </div>
                     )}
@@ -339,6 +354,7 @@ export default function GameSessionView({
                 <div className="flex flex-col justify-center items-center h-48 mb-16 max-w-4xl mx-auto w-full bg-gray-900/40 p-8 rounded-3xl border border-white/5">
                     <span className="text-2xl text-gray-500 mb-6">Brak dostępnych pytań w tym quizie. Przejdź do panelu /admin i dodaj muzykę do pytań.</span>
                     <button 
+                        type="button"
                         onClick={() => window.location.reload()}
                         className="px-6 py-3 bg-gray-700 text-white font-bold uppercase rounded-xl hover:bg-gray-600 transition-colors"
                     >
@@ -349,11 +365,19 @@ export default function GameSessionView({
             <div className="w-full max-w-3xl mx-auto flex flex-col relative group">
                 {feedback && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xl p-4 animate-in fade-in duration-300">
-                        <div className={`bg-gradient-to-b from-gray-900/95 to-black border-2 rounded-3xl max-w-2xl w-full p-5 sm:p-8 flex flex-col shadow-2xl relative overflow-hidden max-h-[90vh] animate-in zoom-in-95 duration-300 ${
+                        <div
+                            ref={feedbackDialogRef}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="answer-feedback-title"
+                            aria-describedby="answer-feedback-description"
+                            tabIndex={-1}
+                            className={`bg-gradient-to-b from-gray-900/95 to-black border-2 rounded-3xl max-w-2xl w-full p-5 sm:p-8 flex flex-col shadow-2xl relative overflow-hidden max-h-[90vh] animate-in zoom-in-95 duration-300 ${
                             feedback.type === 'success' 
                                 ? 'border-green-500/30 shadow-[0_0_50px_rgba(34,197,94,0.15)]' 
                                 : 'border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.15)]'
-                        }`}>
+                        }`}
+                        >
                             
                             {/* Dynamic Blur Backdrop */}
                             {songMetadata?.artworkUrl && (
@@ -426,7 +450,7 @@ export default function GameSessionView({
                                     </div>
 
                                     {/* Result text */}
-                                    <h2 className={`text-2xl sm:text-4xl font-black tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r ${
+                                    <h2 id="answer-feedback-title" className={`text-2xl sm:text-4xl font-black tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r ${
                                         feedback.type === 'success' 
                                             ? 'from-green-400 to-emerald-300' 
                                             : 'from-red-500 to-rose-400'
@@ -435,7 +459,7 @@ export default function GameSessionView({
                                     </h2>
 
                                     {/* Metadata Info */}
-                                    <div className="w-full mb-4">
+                                    <div id="answer-feedback-description" className="w-full mb-4">
                                         <h3 className="text-xl sm:text-2xl font-bold text-white line-clamp-1 mb-1" title={feedback.correctTitle}>
                                             {feedback.correctTitle}
                                         </h3>
@@ -473,6 +497,7 @@ export default function GameSessionView({
                                     {/* Main action button */}
                                     <div className="w-full">
                                         <button
+                                            type="button"
                                             onClick={proceedToNextStep}
                                             className={`w-full font-black py-3.5 px-6 rounded-xl uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${
                                                 feedback.type === 'success'
@@ -514,7 +539,11 @@ export default function GameSessionView({
                 
                 <div className="h-14 sm:h-16 flex flex-row items-stretch gap-3 w-full relative">
                     <div className="flex-1 relative h-full">
+                        <label htmlFor={answerInputId} className="sr-only">
+                            Wpisz tytuł utworu
+                        </label>
                         <input
+                            id={answerInputId}
                             ref={inputRef}
                             type="text"
                             placeholder="Zgaduj utwór..."
@@ -522,6 +551,11 @@ export default function GameSessionView({
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={handleKeyDown}
                             disabled={isSubmitting}
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-expanded={showSuggestions}
+                            aria-controls={showSuggestions ? suggestionsListId : undefined}
+                            aria-activedescendant={activeSuggestionId}
                             autoComplete="off"
                             autoCorrect="off"
                             autoCapitalize="none"
@@ -532,12 +566,18 @@ export default function GameSessionView({
                         
                         {showSuggestions && (
                             <div 
+                                id={suggestionsListId}
                                 ref={suggestionsContainerRef}
+                                role="listbox"
+                                aria-label="Podpowiedzi utworów"
                                 className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border-2 border-gray-700 rounded-2xl max-h-60 overflow-y-auto z-30 shadow-2xl backdrop-blur-xl scrollbar-thin"
                             >
                                 {filteredSuggestions.map((song, index) => (
                                     <div
                                         key={index}
+                                        id={`song-suggestion-${index}`}
+                                        role="option"
+                                        aria-selected={index === activeSuggestionIndex}
                                         onClick={() => {
                                             setInputValue(song.title);
                                             setActiveSuggestionIndex(-1);
@@ -566,6 +606,7 @@ export default function GameSessionView({
                     </div>
                     
                     <button
+                        type="button"
                         onClick={() => {
                             if (feedback) {
                                 proceedToNextStep();
@@ -578,6 +619,13 @@ export default function GameSessionView({
                             }
                         }}
                         disabled={isSubmitting && !feedback}
+                        aria-label={
+                            feedback 
+                              ? "Przejdź dalej" 
+                              : inputValue.trim() === ''
+                                ? "Pomiń utwór"
+                                : "Zatwierdź odpowiedź"
+                        }
                         className={`flex items-center justify-center rounded-xl sm:rounded-2xl font-black text-lg transition-all z-20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 w-14 sm:w-auto sm:px-8 h-full border-2 ${
                             feedback 
                               ? 'bg-white text-black hover:bg-gray-200 border-white shadow-[0_4px_15px_rgba(255,255,255,0.3)]' 

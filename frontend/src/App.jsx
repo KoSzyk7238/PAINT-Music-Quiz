@@ -42,6 +42,7 @@ import HomeView from './components/HomeView';
 import GameSessionView from './components/GameSessionView';
 import SummaryView from './components/SummaryView';
 import { pytaniaPlural } from './utils/plurals';
+import useDialogFocus from './hooks/useDialogFocus';
 
 function GameView() {
   const [inputValue, setInputValue] = useState('');
@@ -82,6 +83,8 @@ function GameView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Wszystkie');
   const [selectedQuizForPreview, setSelectedQuizForPreview] = useState(null);
+  const closeQuizPreview = React.useCallback(() => setSelectedQuizForPreview(null), []);
+  const quizPreviewDialogRef = useDialogFocus(!!selectedQuizForPreview, closeQuizPreview);
   const [chosenDifficulty, setChosenDifficulty] = useState('MEDIUM');
   const [chosenNumQuestions, setChosenNumQuestions] = useState(10);
   const [showQuitConfirmation, setShowQuitConfirmation] = useState(false);
@@ -407,7 +410,7 @@ function GameView() {
         } else {
           const errData = await res.json();
           console.error("Failed to generate random quiz:", errData.error);
-          alert(errData.error || "Wystąpił błąd podczas generowania losowego quizu.");
+          setApiDebug(errData.error || "Wystąpił błąd podczas generowania losowego quizu.");
           setIsLoadingQuizDetail(false);
           return;
         }
@@ -503,6 +506,20 @@ function GameView() {
     setSessionSummary(null);
     setIsPlaying(false);
   };
+
+  const cancelQuitSession = React.useCallback(() => {
+    setShowQuitConfirmation(false);
+    if (wasPlayingBeforeQuitConfirm) {
+      setIsPlaying(true);
+      clearAudioFade();
+      if (audioRef.current) {
+          audioRef.current.volume = volume * volume;
+          audioRef.current.play().catch(e => console.error("Auto-resume failed:", e));
+      }
+    }
+  }, [clearAudioFade, wasPlayingBeforeQuitConfirm, volume]);
+
+  const quitConfirmationDialogRef = useDialogFocus(showQuitConfirmation, cancelQuitSession);
 
   // Helper do budowania pełnego URL-a do mediów
   const getFullAudioUrl = (url) => {
@@ -796,14 +813,6 @@ function GameView() {
                   setActiveSuggestionIndex(prev => prev - 1);
               }
           }
-      } else if (e.key === 'Tab') {
-          if (showSuggestions && activeSuggestionIndex >= 0) {
-              e.preventDefault();
-              setInputValue(filteredSuggestions[activeSuggestionIndex].title);
-          } else if (showSuggestions && filteredSuggestions.length > 0) {
-              e.preventDefault();
-              setInputValue(filteredSuggestions[0].title);
-          }
       } else if (e.key === 'Enter') {
           e.stopPropagation();
           if (feedback) {
@@ -854,7 +863,9 @@ function GameView() {
 
           {!isSidebarOpen && (
               <button
+                  type="button"
                   onClick={() => setIsSidebarOpen(true)}
+                  aria-label="Otwórz menu"
                   className="fixed top-4 right-4 sm:top-10 sm:right-10 z-50 p-2 sm:p-3 bg-gray-900/80 border border-gray-700 rounded-full hover:border-green-500 hover:text-green-400 transition-all hover:scale-110 shadow-[0_0_15px_rgba(0,0,0,0.5)] backdrop-blur-sm"
               >
                 <Menu size={24} className="sm:w-8 sm:h-8" />
@@ -990,14 +1001,21 @@ function GameView() {
           }
 
           return (
-            <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col justify-end sm:justify-center p-0 sm:p-4">
+            <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col justify-end sm:justify-center p-0 sm:p-4" onClick={closeQuizPreview}>
               <div 
+                ref={quizPreviewDialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="quiz-preview-title"
+                tabIndex={-1}
                 className="bg-gray-950 border border-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-4xl sm:mx-auto overflow-hidden shadow-2xl relative flex flex-col md:flex-row text-left max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-full sm:zoom-in duration-300"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Close Button */}
                 <button 
-                  onClick={() => setSelectedQuizForPreview(null)}
+                  type="button"
+                  onClick={closeQuizPreview}
+                  aria-label="Zamknij szczegóły quizu"
                   className="absolute top-4 right-4 bg-black/40 hover:bg-white/10 text-gray-400 hover:text-white p-2 rounded-full z-20 transition-all border border-white/5"
                 >
                   <X size={20} />
@@ -1037,7 +1055,7 @@ function GameView() {
                       </span>
                     </div>
 
-                    <h3 className="text-2xl sm:text-3xl font-black text-white mb-2 leading-none uppercase italic tracking-tight opacity-0 animate-fade-in-up-delay-1">
+                    <h3 id="quiz-preview-title" className="text-2xl sm:text-3xl font-black text-white mb-2 leading-none uppercase italic tracking-tight opacity-0 animate-fade-in-up-delay-1">
                       {quiz.title}
                     </h3>
 
@@ -1055,14 +1073,15 @@ function GameView() {
                       {/* Gatunek muzyczny (tylko dla losowego quizu) */}
                       {quiz.isRandomQuizPlaceholder && (
                         <div>
-                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 block flex items-center gap-1.5">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 flex items-center gap-1.5">
                             <Music size={12} className="text-green-400" />
                             Gatunek muzyczny
-                          </label>
-                          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto bg-gray-900/40 p-2.5 rounded-2xl border border-gray-850/60 w-full no-scrollbar">
+                          </div>
+                          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto bg-gray-900/40 p-2.5 rounded-2xl border border-gray-800/60 w-full no-scrollbar">
                             <button
                               type="button"
                               onClick={() => setSelectedRandomGenreIds([])}
+                              aria-pressed={selectedRandomGenreIds.length === 0}
                               className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                                 selectedRandomGenreIds.length === 0
                                   ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105'
@@ -1081,6 +1100,7 @@ function GameView() {
                                   key={g.id}
                                   type="button"
                                   onClick={() => toggleRandomGenreId(g.id)}
+                                  aria-pressed={isSelected}
                                   className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                                     isSelected
                                       ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105'
@@ -1097,10 +1117,10 @@ function GameView() {
 
                       {/* Difficulty Selection */}
                       <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 block flex items-center gap-1.5">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 flex items-center gap-1.5">
                           <Zap size={12} className="text-yellow-400" />
                           Poziom trudności
-                        </label>
+                        </div>
                         <div className="grid grid-cols-3 gap-2">
                           {['EASY', 'MEDIUM', 'HARD'].map((diff) => {
                             const isSelected = chosenDifficulty === diff;
@@ -1128,7 +1148,9 @@ function GameView() {
                             return (
                               <button
                                 key={diff}
+                                type="button"
                                 onClick={() => setChosenDifficulty(diff)}
+                                aria-pressed={isSelected}
                                 className={`relative flex flex-col items-center gap-0.5 sm:gap-1 py-2.5 sm:py-3 px-1.5 sm:px-2 rounded-xl border transition-all duration-200 cursor-pointer active:scale-95 ${
                                   isSelected ? colors.active : colors.idle
                                 } ${isSelected ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
@@ -1154,17 +1176,19 @@ function GameView() {
 
                       {/* Question Count Selection */}
                       <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 block flex items-center gap-1.5">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2.5 flex items-center gap-1.5">
                           <Hash size={12} className="text-purple-400" />
-                          Ilość piosenek
-                        </label>
+                          Liczba piosenek
+                        </div>
                         <div className="flex gap-2">
                           {presets.map((num) => {
                             const isSelected = chosenNumQuestions === num;
                             return (
                               <button
                                 key={num}
+                                type="button"
                                 onClick={() => setChosenNumQuestions(num)}
+                                aria-pressed={isSelected}
                                 className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl border text-sm font-black transition-all duration-200 cursor-pointer active:scale-90 ${
                                   isSelected 
                                     ? 'bg-purple-500/20 border-purple-500/60 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.2)] scale-[1.03]' 
@@ -1253,9 +1277,10 @@ function GameView() {
 
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-auto">
                     <button 
+                      type="button"
                       onClick={() => {
                         startSession(quiz, chosenDifficulty, chosenNumQuestions);
-                        setSelectedQuizForPreview(null);
+                        closeQuizPreview();
                       }}
                       disabled={isLoadingQuizDetail || maxQuestions === 0}
                       className={`flex-grow font-black uppercase tracking-wider py-4 rounded-2xl transition-all flex items-center justify-center gap-2 ${
@@ -1281,7 +1306,8 @@ function GameView() {
                       )}
                     </button>
                     <button 
-                      onClick={() => setSelectedQuizForPreview(null)}
+                      type="button"
+                      onClick={closeQuizPreview}
                       className="bg-gray-900 hover:bg-gray-800 text-white font-black uppercase tracking-wider px-6 py-4 rounded-2xl border border-gray-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                       Anuluj
@@ -1295,33 +1321,34 @@ function GameView() {
 
         {/* Quit Quiz Confirmation Modal */}
         {showQuitConfirmation && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-950 border border-gray-800 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative text-center">
-              <h3 className="text-2xl font-black text-red-500 mb-3 uppercase italic tracking-tight">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={cancelQuitSession}>
+            <div
+              ref={quitConfirmationDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="quit-dialog-title"
+              aria-describedby="quit-dialog-description"
+              tabIndex={-1}
+              className="bg-gray-950 border border-gray-800 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 id="quit-dialog-title" className="text-2xl font-black text-red-500 mb-3 uppercase italic tracking-tight">
                 Przerwać quiz?
               </h3>
-              <p className="text-gray-400 text-sm leading-relaxed mb-8 font-medium">
+              <p id="quit-dialog-description" className="text-gray-400 text-sm leading-relaxed mb-8 font-medium">
                 Czy na pewno chcesz opuścić trwający quiz? Twój dotychczasowy postęp w tej sesji zostanie całkowicie utracony.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <button 
+                  type="button"
                   onClick={confirmQuitSession}
                   className="flex-grow bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-wider py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Tak, wyjdź
                 </button>
                 <button 
-                  onClick={() => {
-                    setShowQuitConfirmation(false);
-                    if (wasPlayingBeforeQuitConfirm) {
-                      setIsPlaying(true);
-                      clearAudioFade();
-                      if (audioRef.current) {
-                          audioRef.current.volume = volume * volume;
-                          audioRef.current.play().catch(e => console.error("Auto-resume failed:", e));
-                      }
-                    }
-                  }}
+                  type="button"
+                  onClick={cancelQuitSession}
                   className="flex-grow bg-gray-900 hover:bg-gray-800 text-white font-black uppercase tracking-wider py-3.5 rounded-xl border border-gray-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Graj dalej

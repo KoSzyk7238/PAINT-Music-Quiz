@@ -171,10 +171,12 @@ export default function Friends() {
             {/* MAIN LEADERBOARD TABS */}
             <div className="flex bg-gray-900/50 p-1.5 rounded-2xl border border-white/5 mb-8 z-10 max-w-md w-full">
                 <button
+                    type="button"
                     onClick={() => {
                         setLeaderboardType('global');
                         setUsers([]);
                     }}
+                    aria-pressed={leaderboardType === 'global'}
                     className={`flex-1 py-3 rounded-xl font-black uppercase tracking-wider text-sm transition-all ${
                         leaderboardType === 'global'
                             ? 'bg-green-500 text-black shadow-[0_4px_12px_rgba(34,197,94,0.3)]'
@@ -184,10 +186,12 @@ export default function Friends() {
                     Ranking Ogólny
                 </button>
                 <button
+                    type="button"
                     onClick={() => {
                         setLeaderboardType('quiz');
                         setUsers([]);
                     }}
+                    aria-pressed={leaderboardType === 'quiz'}
                     className={`flex-1 py-3 rounded-xl font-black uppercase tracking-wider text-sm transition-all ${
                         leaderboardType === 'quiz'
                             ? 'bg-green-500 text-black shadow-[0_4px_12px_rgba(34,197,94,0.3)]'
@@ -204,7 +208,9 @@ export default function Friends() {
                     /* Global sorting options */
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-gray-950/40 p-4 rounded-3xl border border-white/5">
                         <button
+                            type="button"
                             onClick={() => setGlobalSort('points')}
+                            aria-pressed={globalSort === 'points'}
                             className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all border ${
                                 globalSort === 'points'
                                     ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.1)]'
@@ -214,7 +220,9 @@ export default function Friends() {
                             <Trophy size={16} /> Suma Punktów
                         </button>
                         <button
+                            type="button"
                             onClick={() => setGlobalSort('streak')}
+                            aria-pressed={globalSort === 'streak'}
                             className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all border ${
                                 globalSort === 'streak'
                                     ? 'bg-orange-500/10 border-orange-500/50 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)]'
@@ -224,7 +232,9 @@ export default function Friends() {
                             <Flame size={16} /> Najlepsza Seria
                         </button>
                         <button
+                            type="button"
                             onClick={() => setGlobalSort('accuracy')}
+                            aria-pressed={globalSort === 'accuracy'}
                             className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all border ${
                                 globalSort === 'accuracy'
                                     ? 'bg-green-500/10 border-green-500/50 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.1)]'
@@ -234,7 +244,9 @@ export default function Friends() {
                             <Target size={16} /> Skuteczność %
                         </button>
                         <button
+                            type="button"
                             onClick={() => setGlobalSort('games')}
+                            aria-pressed={globalSort === 'games'}
                             className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all border ${
                                 globalSort === 'games'
                                     ? 'bg-blue-500/10 border-blue-500/50 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
@@ -247,9 +259,9 @@ export default function Friends() {
                 ) : (
                     /* Quiz Selector Chips Grid */
                     <div className="flex flex-col gap-3">
-                        <label className="text-xs font-black uppercase text-green-500 tracking-widest pl-1">
+                        <div className="text-xs font-black uppercase text-green-500 tracking-widest pl-1">
                             Wybierz Playlistę / Quiz:
-                        </label>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                             {quizzes.map((quiz) => {
                                 const isActive = selectedQuizId === quiz.id;
@@ -259,8 +271,10 @@ export default function Friends() {
 
                                 return (
                                     <button
+                                        type="button"
                                         key={quiz.id}
                                         onClick={() => setSelectedQuizId(quiz.id)}
+                                        aria-pressed={isActive}
                                         className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition-all ${
                                             isActive
                                                 ? 'bg-green-950/20 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)] scale-[1.02]'
@@ -304,6 +318,7 @@ export default function Friends() {
                     <div className="text-center text-red-500 py-16 bg-gray-900/20 border border-red-500/20 rounded-3xl flex flex-col items-center gap-3">
                         <span className="text-xl font-bold">{error}</span>
                         <button 
+                            type="button"
                             onClick={() => {
                                 setError(null);
                                 setLeaderboardType('global');
