@@ -27,6 +27,9 @@ sleep 3
 # (Aktualizuje katalog frontend/dist/ na serwerze)
 echo "Instalowanie zależności w kontenerze (npm ci)..."
 docker compose exec -T frontend npm ci
+echo "Restartowanie kontenera frontendu w celu przeładowania zależności..."
+docker compose restart frontend
+sleep 3
 echo "Kompilowanie wersji produkcyjnej frontendu (npm run build)..."
 docker compose exec -T frontend npm run build
 
