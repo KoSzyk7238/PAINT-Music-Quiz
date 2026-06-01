@@ -101,7 +101,8 @@ class QuestionAdmin(ImportExportModelAdmin):
 class BannerPositionWidget(forms.widgets.NumberInput):
     def render(self, name, value, attrs=None, renderer=None):
         base_html = super().render(name, value, attrs, renderer)
-        cover_url = attrs.get('data-cover-url', '') if attrs else ''
+        final_attrs = self.build_attrs(self.attrs, attrs)
+        cover_url = final_attrs.get('data-cover-url', '')
         val = value if value is not None else 35
         
         editor_html = f"""
@@ -156,8 +157,8 @@ class BannerPositionWidget(forms.widgets.NumberInput):
         
         <script>
         (function() {{
-            document.addEventListener("DOMContentLoaded", function() {{
-                const inputEl = document.getElementById("{attrs.get('id', 'id_' + name) if attrs else 'id_' + name}");
+            function init() {{
+                const inputEl = document.getElementById("{final_attrs.get('id', 'id_' + name)}");
                 const previewEl = document.getElementById("banner-position-preview");
                 const imgEl = document.getElementById("banner-position-image");
                 const valText = document.getElementById("banner-position-val-text");
@@ -237,7 +238,13 @@ class BannerPositionWidget(forms.widgets.NumberInput):
                         }}
                     }});
                 }}
-            }});
+            }}
+
+            if (document.readyState === "loading") {{
+                document.addEventListener("DOMContentLoaded", init);
+            }} else {{
+                init();
+            }}
         }})();
         </script>
         """
@@ -262,13 +269,16 @@ class QuizAdminForm(forms.ModelForm):
 
 
 class QuizAdmin(ImportExportModelAdmin):
-    form = QuizAdminForm
     resource_classes = [QuizResource]
     list_display = ('title', 'genre', 'num_questions_to_ask', 'time_limit', 'created_at')
     search_fields = ('title',)
     list_editable = ('num_questions_to_ask', 'time_limit')
     inlines = [QuestionInline]
     change_list_template = "admin/projekt_muzyka/quiz/change_list.html"
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        kwargs['form'] = QuizAdminForm
+        return super().get_form(request, obj, change, **kwargs)
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('genre')
