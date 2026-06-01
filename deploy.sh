@@ -32,12 +32,4 @@ docker compose exec -T frontend npm run build
 echo "Klasyfikowanie muzyki i quizów (python manage.py classify_music)..."
 docker compose exec -T backend python manage.py classify_music
 
-# 8. Automatyczne dopasowywanie playlist z Baza-playlist.txt do istniejących quizów
-echo "Dopasowywanie playlist do quizów (python manage.py match_existing_playlists)..."
-docker compose exec -T backend python manage.py match_existing_playlists
-
-# 9. Jednorazowa aktualizacja okładek quizów bez ramek
-echo "Aktualizacja okładek quizów z Apple Music (python manage.py update_quiz_covers)..."
-docker compose exec -T backend python manage.py update_quiz_covers
-
 echo "=== Wdrożenie zakończone pomyślnie! ==="

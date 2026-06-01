@@ -410,7 +410,7 @@ export default function DetailedSummaryModal({
                                                 <button
                                                     type="button"
                                                     onClick={() => togglePlayPreview(audioUrl)}
-                                                    className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity cursor-pointer text-white"
+                                                    className="absolute -inset-[1.5px] bg-black/60 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity cursor-pointer text-white"
                                                     aria-label={isPlayingThis ? 'Wstrzymaj fragment' : 'Odsłuchaj fragment'}
                                                 >
                                                     {isPlayingThis ? (
@@ -423,7 +423,7 @@ export default function DetailedSummaryModal({
 
                                             {/* Playing Equalizer Overlay if active */}
                                             {isPlayingThis && (
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover/cover:hidden pointer-events-none">
+                                                <div className="absolute -inset-[1.5px] bg-black/40 flex items-center justify-center group-hover/cover:hidden pointer-events-none">
                                                     <div className="flex items-end gap-0.5 h-3 text-green-500">
                                                         <span className="w-0.5 bg-green-500 rounded-full animate-[bounce_0.8s_infinite_100ms] h-2"></span>
                                                         <span className="w-0.5 bg-green-500 rounded-full animate-[bounce_0.8s_infinite_300ms] h-3"></span>

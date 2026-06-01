@@ -244,7 +244,7 @@ export default function HomeView({
                         <img 
                             src={coverUrl} 
                             alt={quiz.title} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 will-change-transform"
                         />
                     ) : (
                         <div className={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex flex-col justify-between p-6 relative overflow-hidden`}>
@@ -262,10 +262,10 @@ export default function HomeView({
                     )}
                     
                     {/* Dark gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
+                    <div className="absolute -inset-[1.5px] bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
 
                     {/* Play button overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute -inset-[1.5px] flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="bg-green-500 text-black p-4 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.6)] transform scale-75 group-hover:scale-100 transition-transform duration-300">
                             <Play fill="black" size={24} className="ml-1" />
                         </div>
@@ -562,15 +562,15 @@ export default function HomeView({
                                                     src={coverUrl} 
                                                     alt={quiz.title} 
                                                     draggable="false"
-                                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-1000 select-none"
+                                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-1000 select-none will-change-transform"
                                                 />
                                             ) : (
-                                                <div className={`absolute inset-0 bg-gradient-to-r ${getPlaceholderGradient(quiz.title)} group-hover:scale-[1.02] transition-transform duration-1000`}></div>
+                                                <div className={`absolute inset-0 bg-gradient-to-r ${getPlaceholderGradient(quiz.title)} group-hover:scale-[1.02] transition-transform duration-1000 will-change-transform`}></div>
                                             )}
 
                                             {/* Cinematic Gradient Fade */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/45 to-transparent"></div>
-                                            <div className="absolute inset-0 bg-gradient-to-r from-gray-950/90 via-transparent to-transparent"></div>
+                                            <div className="absolute -inset-[1.5px] bg-gradient-to-t from-gray-950 via-gray-950/45 to-transparent"></div>
+                                            <div className="absolute -inset-[1.5px] bg-gradient-to-r from-gray-950/90 via-transparent to-transparent"></div>
 
                                             {/* Hero Content */}
                                             <div className="relative z-10 p-6 sm:p-8 md:p-12 max-w-2xl text-left w-full">

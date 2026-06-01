@@ -32,23 +32,11 @@ class Command(BaseCommand):
                 "Database already contains quizzes — skipping playlist seed "
                 "(runs only on first startup with empty database)."
             )
-            try:
-                from django.core.management import call_command
-                self.stdout.write("Running retroactive playlist matching...")
-                call_command("match_existing_playlists")
-            except Exception as e:
-                self.stderr.write(f"Error matching playlists: {e}")
             self._create_flag_file()
             self.stdout.write(self.style.SUCCESS("Seed completed."))
             return
 
         self._seed_quizzes_from_file()
-        try:
-            from django.core.management import call_command
-            self.stdout.write("Running retroactive playlist matching...")
-            call_command("match_existing_playlists")
-        except Exception as e:
-            self.stderr.write(f"Error matching playlists: {e}")
         self._create_flag_file()
         self.stdout.write(self.style.SUCCESS("Seed completed."))
 
