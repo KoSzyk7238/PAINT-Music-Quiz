@@ -25,6 +25,8 @@ sleep 3
 
 # 6. Kompilacja wersji produkcyjnej frontendu wewnątrz kontenera
 # (Aktualizuje katalog frontend/dist/ na serwerze)
+echo "Instalowanie zależności w kontenerze (npm ci)..."
+docker compose exec -T frontend npm ci
 echo "Kompilowanie wersji produkcyjnej frontendu (npm run build)..."
 docker compose exec -T frontend npm run build
 
