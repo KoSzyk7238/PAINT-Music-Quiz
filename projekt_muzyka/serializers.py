@@ -120,6 +120,7 @@ class QuizListSerializer(serializers.ModelSerializer):
             'total_plays',
             'song_categories',
             'imported_from_playlist_url',
+            'banner_vertical_position',
         ]
 
     def get_song_categories(self, obj):
@@ -138,7 +139,7 @@ class QuizSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quiz
-        fields = ['id', 'title', 'description', 'cover_image', 'genre', 'genre_id', 'difficulty', 'num_questions_to_ask', 'created_at', 'questions', 'stats', 'is_random', 'imported_from_playlist_url']
+        fields = ['id', 'title', 'description', 'cover_image', 'genre', 'genre_id', 'difficulty', 'num_questions_to_ask', 'created_at', 'questions', 'stats', 'is_random', 'imported_from_playlist_url', 'banner_vertical_position']
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

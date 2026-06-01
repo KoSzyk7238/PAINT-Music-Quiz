@@ -98,7 +98,171 @@ class QuestionAdmin(ImportExportModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('quiz', 'song')
 
+class BannerPositionWidget(forms.widgets.NumberInput):
+    def render(self, name, value, attrs=None, renderer=None):
+        base_html = super().render(name, value, attrs, renderer)
+        cover_url = attrs.get('data-cover-url', '') if attrs else ''
+        val = value if value is not None else 35
+        
+        editor_html = f"""
+        <div class="banner-position-editor-container" style="margin-top: 10px; max-width: 600px;">
+            <div id="banner-position-preview" style="
+                position: relative; 
+                width: 100%; 
+                height: 150px; 
+                border-radius: 12px; 
+                overflow: hidden; 
+                background: #111; 
+                border: 2px solid #444; 
+                cursor: grab;
+                user-select: none;
+                margin-bottom: 5px;
+            ">
+                <img id="banner-position-image" src="{cover_url}" style="
+                    width: 100%; 
+                    height: 100%; 
+                    object-fit: cover; 
+                    object-position: center {val}%;
+                    pointer-events: none;
+                    display: {'block' if cover_url else 'none'};
+                " />
+                
+                <div style="
+                    position: absolute; 
+                    inset: 0; 
+                    border: 1px dashed rgba(34, 197, 94, 0.4); 
+                    pointer-events: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <span style="
+                        background: rgba(0,0,0,0.75); 
+                        color: #22c55e; 
+                        padding: 6px 10px; 
+                        font-size: 11px; 
+                        font-weight: bold; 
+                        border-radius: 6px;
+                        border: 1px solid rgba(34, 197, 94, 0.3);
+                        pointer-events: none;
+                    ">PRZECIĄGNIJ W PIONIE, ABY DOPASOWAĆ KADR</span>
+                </div>
+            </div>
+            
+            <p style="margin-top: 6px; font-size: 12px; color: #999;">
+                Pozycja pionowa baneru: <strong id="banner-position-val-text" style="color: #22c55e;">{val}</strong>%
+            </p>
+        </div>
+        
+        <script>
+        (function() {{
+            document.addEventListener("DOMContentLoaded", function() {{
+                const inputEl = document.getElementById("{attrs.get('id', 'id_' + name) if attrs else 'id_' + name}");
+                const previewEl = document.getElementById("banner-position-preview");
+                const imgEl = document.getElementById("banner-position-image");
+                const valText = document.getElementById("banner-position-val-text");
+                const fileInputEl = document.querySelector("input[type='file'][name='cover_image']");
+                
+                if (!inputEl || !previewEl || !imgEl || !valText) return;
+                
+                let isDragging = false;
+                let startY = 0;
+                let startPercent = parseFloat(inputEl.value) || 35;
+                
+                function updatePosition(percent) {{
+                    percent = Math.max(0, Math.min(100, Math.round(percent)));
+                    inputEl.value = percent;
+                    valText.innerText = percent;
+                    imgEl.style.objectPosition = `center ${{percent}}%`;
+                }}
+                
+                previewEl.addEventListener("mousedown", function(e) {{
+                    if (!imgEl.src || imgEl.style.display === "none") return;
+                    isDragging = true;
+                    startY = e.clientY;
+                    startPercent = parseFloat(inputEl.value) || 35;
+                    previewEl.style.cursor = "grabbing";
+                    e.preventDefault();
+                }});
+                
+                document.addEventListener("mousemove", function(e) {{
+                    if (!isDragging) return;
+                    const dy = e.clientY - startY;
+                    const deltaPercent = (dy / previewEl.clientHeight) * 100;
+                    updatePosition(startPercent - deltaPercent);
+                }});
+                
+                document.addEventListener("mouseup", function() {{
+                    if (isDragging) {{
+                        isDragging = false;
+                        previewEl.style.cursor = "grab";
+                    }}
+                }});
+                
+                previewEl.addEventListener("touchstart", function(e) {{
+                    if (!imgEl.src || imgEl.style.display === "none") return;
+                    isDragging = true;
+                    startY = e.touches[0].clientY;
+                    startPercent = parseFloat(inputEl.value) || 35;
+                }}, {{ passive: true }});
+                
+                document.addEventListener("touchmove", function(e) {{
+                    if (!isDragging) return;
+                    const dy = e.touches[0].clientY - startY;
+                    const deltaPercent = (dy / previewEl.clientHeight) * 100;
+                    updatePosition(startPercent - deltaPercent);
+                }}, {{ passive: true }});
+                
+                document.addEventListener("touchend", function() {{
+                    isDragging = false;
+                }});
+                
+                inputEl.addEventListener("input", function() {{
+                    let val = parseFloat(inputEl.value);
+                    if (isNaN(val)) val = 35;
+                    imgEl.style.objectPosition = `center ${{val}}%`;
+                    valText.innerText = val;
+                }});
+                
+                if (fileInputEl) {{
+                    fileInputEl.addEventListener("change", function(e) {{
+                        const file = e.target.files[0];
+                        if (file) {{
+                            const reader = new FileReader();
+                            reader.onload = function(evt) {{
+                                imgEl.src = evt.target.result;
+                                imgEl.style.display = "block";
+                            }};
+                            reader.readAsDataURL(file);
+                        }}
+                    }});
+                }}
+            }});
+        }})();
+        </script>
+        """
+        from django.utils.safestring import mark_safe
+        return mark_safe(base_html + editor_html)
+
+
+class QuizAdminForm(forms.ModelForm):
+    class Meta:
+        model = Quiz
+        fields = "__all__"
+        widgets = {
+            'banner_vertical_position': BannerPositionWidget(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.cover_image:
+            self.fields['banner_vertical_position'].widget.attrs['data-cover-url'] = self.instance.cover_image.url
+        else:
+            self.fields['banner_vertical_position'].widget.attrs['data-cover-url'] = ''
+
+
 class QuizAdmin(ImportExportModelAdmin):
+    form = QuizAdminForm
     resource_classes = [QuizResource]
     list_display = ('title', 'genre', 'num_questions_to_ask', 'time_limit', 'created_at')
     search_fields = ('title',)

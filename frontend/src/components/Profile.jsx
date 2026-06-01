@@ -1,10 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Camera, KeyRound, UserMinus, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import ReactCrop from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import AuthModal from './AuthModal';
 import useDialogFocus from '../hooks/useDialogFocus';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+
+const getCroppedImg = (image, crop) => {
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    
+    canvas.width = crop.width * scaleX;
+    canvas.height = crop.height * scaleY;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    ctx.drawImage(
+        image,
+        crop.x * scaleX,
+        crop.y * scaleY,
+        crop.width * scaleX,
+        crop.height * scaleY,
+        0,
+        0,
+        crop.width * scaleX,
+        crop.height * scaleY
+    );
+
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                resolve(null);
+                return;
+            }
+            resolve(blob);
+        }, 'image/jpeg', 0.95);
+    });
+};
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -18,6 +54,13 @@ export default function Profile() {
     const [avatarUrl, setAvatarUrl] = useState('');
     const [avatarFile, setAvatarFile] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState('');
+
+    // Avatar crop states
+    const [showCropModal, setShowCropModal] = useState(false);
+    const [cropImageSrc, setCropImageSrc] = useState('');
+    const [crop, setCrop] = useState({ unit: '%', width: 50, aspect: 1 });
+    const [completedCrop, setCompletedCrop] = useState(null);
+    const imageRef = useRef(null);
 
     // Password change states
     const [oldPassword, setOldPassword] = useState('');
@@ -80,8 +123,12 @@ export default function Profile() {
     const handleAvatarChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setAvatarFile(file);
-            setAvatarPreview(URL.createObjectURL(file));
+            const reader = new FileReader();
+            reader.onload = () => {
+                setCropImageSrc(reader.result);
+                setShowCropModal(true);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -458,6 +505,89 @@ export default function Profile() {
                             </button>
                         </div>
                     </form>
+                </div>
+            )}
+
+            {/* --- MODAL KADROWANIA AWATARA --- */}
+            {showCropModal && (
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-gray-900 border-2 border-green-500/20 p-6 sm:p-8 rounded-2xl max-w-lg w-full flex flex-col gap-6 shadow-[0_0_50px_rgba(34,197,94,0.15)] max-h-[90vh] overflow-y-auto">
+                        <div className="text-center">
+                            <h3 className="text-2xl font-black uppercase text-white tracking-tight">Dostosuj awatar</h3>
+                            <p className="text-gray-400 text-sm mt-1">Przeciągnij i dopasuj kadr do kwadratu</p>
+                        </div>
+
+                        <div className="flex justify-center items-center overflow-hidden max-h-[50vh] bg-black/40 rounded-xl border border-white/5 p-2">
+                            <ReactCrop
+                                crop={crop}
+                                onChange={(c) => setCrop(c)}
+                                onComplete={(c) => setCompletedCrop(c)}
+                                aspect={1}
+                                circularCrop
+                            >
+                                <img
+                                    ref={imageRef}
+                                    src={cropImageSrc}
+                                    alt="Crop Source"
+                                    className="max-w-full max-h-[45vh] object-contain"
+                                    onLoad={(e) => {
+                                        const { width, height } = e.currentTarget;
+                                        const minDim = Math.min(width, height);
+                                        const initialCrop = {
+                                            unit: 'px',
+                                            width: minDim * 0.8,
+                                            height: minDim * 0.8,
+                                            x: (width - minDim * 0.8) / 2,
+                                            y: (height - minDim * 0.8) / 2,
+                                            aspect: 1
+                                        };
+                                        setCrop(initialCrop);
+                                        setCompletedCrop(initialCrop);
+                                    }}
+                                />
+                            </ReactCrop>
+                        </div>
+
+                        <div className="flex gap-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowCropModal(false);
+                                    setCropImageSrc('');
+                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                }}
+                                className="flex-grow py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700 transition-colors uppercase tracking-wider text-sm"
+                            >
+                                Anuluj
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (imageRef.current && completedCrop) {
+                                        try {
+                                            const croppedBlob = await getCroppedImg(imageRef.current, completedCrop);
+                                            if (croppedBlob) {
+                                                const file = new File([croppedBlob], 'avatar.jpg', { type: 'image/jpeg' });
+                                                setAvatarFile(file);
+                                                setAvatarPreview(URL.createObjectURL(croppedBlob));
+                                                setShowCropModal(false);
+                                                setCropImageSrc('');
+                                            } else {
+                                                showToast('Wystąpił błąd podczas kadrowania obrazu.', 'error');
+                                            }
+                                        } catch (err) {
+                                            showToast('Błąd kadrowania: ' + err.message, 'error');
+                                        }
+                                    } else {
+                                        showToast('Zaznacz obszar do wykadrowania.', 'error');
+                                    }
+                                }}
+                                className="flex-grow py-4 bg-green-500 text-black font-black rounded-xl hover:bg-green-400 transition-all uppercase tracking-wider text-sm shadow-[0_10px_20px_rgba(34,197,94,0.2)]"
+                            >
+                                Zastosuj
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
