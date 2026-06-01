@@ -277,6 +277,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "total_time_seconds",
         ]
 
+    def validate_avatar(self, value):
+        if value:
+            max_size = 2 * 1024 * 1024
+            if value.size > max_size:
+                raise serializers.ValidationError("Rozmiar pliku awatara nie może przekraczać 2 MB.")
+        return value
+
 
 class UserPublicSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True)

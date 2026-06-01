@@ -123,6 +123,20 @@ export default function Profile() {
     const handleAvatarChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+            if (file.size > MAX_SIZE) {
+                showToast('Rozmiar pliku awatara nie może przekraczać 2 MB.', 'error');
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
+
+            if (file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif')) {
+                setAvatarFile(file);
+                setAvatarPreview(URL.createObjectURL(file));
+                showToast('Wykryto plik GIF - pominięto kadrowanie w celu zachowania animacji.', 'info');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = () => {
                 setCropImageSrc(reader.result);
