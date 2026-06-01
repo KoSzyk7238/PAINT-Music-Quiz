@@ -562,7 +562,7 @@ export default function HomeView({
                                                     src={coverUrl} 
                                                     alt={quiz.title} 
                                                     draggable="false"
-                                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-1000 select-none will-change-transform"
+                                                    className="absolute inset-0 w-full h-full object-cover object-[center_35%] group-hover:scale-[1.02] transition-transform duration-1000 select-none will-change-transform"
                                                 />
                                             ) : (
                                                 <div className={`absolute inset-0 bg-gradient-to-r ${getPlaceholderGradient(quiz.title)} group-hover:scale-[1.02] transition-transform duration-1000 will-change-transform`}></div>
