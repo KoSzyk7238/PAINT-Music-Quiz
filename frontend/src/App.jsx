@@ -601,6 +601,18 @@ function GameView() {
     setIsPlaying(false);
   };
 
+  const handleLogoClick = () => {
+    if (currentQuiz && !sessionSummary) {
+      handleQuitSession();
+    } else {
+      setCurrentQuiz(null);
+      setSessionSummary(null);
+      setSelectedCategory('Wszystkie');
+      setSearchQuery('');
+      setSelectedQuizForPreview(null);
+    }
+  };
+
   const cancelQuitSession = React.useCallback(() => {
     setShowQuitConfirmation(false);
     if (wasPlayingBeforeQuitConfirm) {
@@ -986,11 +998,17 @@ function GameView() {
 
           <div className="mb-4 sm:mb-6 text-center mt-2 sm:mt-4 px-12 sm:px-0">
             {!currentQuiz ? (
-                <h1 className="text-3xl xs:text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                <h1 
+                  onClick={handleLogoClick}
+                  className="inline-block text-3xl xs:text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all select-none"
+                >
                   JAKI TO SYGNAŁ?
                 </h1>
             ) : (
-                <h1 className="text-xl xs:text-2xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-2 sm:mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                <h1 
+                  onClick={handleLogoClick}
+                  className="inline-block text-xl xs:text-2xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-2 sm:mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all select-none"
+                >
                   JAKI TO SYGNAŁ?
                 </h1>
             )}

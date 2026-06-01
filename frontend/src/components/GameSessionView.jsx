@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, X, Volume2, VolumeX, ChevronRight, Music, Flame } from 'lucide-react';
 import useDialogFocus from '../hooks/useDialogFocus';
 
+const shouldAutoFocus = () => {
+    if (typeof window === 'undefined') return false;
+    // Check if the user agent matches common mobile/tablet devices
+    return !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 export default function GameSessionView({
     currentQuiz,
     currentQuestionIndex,
@@ -37,7 +43,9 @@ export default function GameSessionView({
     useEffect(() => {
         if (!feedback && inputRef.current) {
             const timer = setTimeout(() => {
-                inputRef.current?.focus();
+                if (shouldAutoFocus()) {
+                    inputRef.current?.focus();
+                }
             }, 50);
             return () => clearTimeout(timer);
         }
@@ -228,7 +236,9 @@ export default function GameSessionView({
                             type="button"
                             onClick={(e) => {
                                 togglePlay();
-                                inputRef.current?.focus();
+                                if (shouldAutoFocus()) {
+                                    inputRef.current?.focus();
+                                }
                             }}
                             disabled={!!feedback || isSubmitting}
                             aria-label={isPlaying ? 'Pauzuj fragment audio' : 'Odtwórz fragment audio'}
@@ -318,7 +328,9 @@ export default function GameSessionView({
                             type="button"
                             onClick={() => {
                                 setVolume(prev => prev > 0 ? 0 : 1);
-                                inputRef.current?.focus();
+                                if (shouldAutoFocus()) {
+                                    inputRef.current?.focus();
+                                }
                             }}
                             aria-label={volume === 0 ? 'Włącz dźwięk' : 'Wycisz dźwięk'}
                             className="text-gray-500 hover:text-gray-300 transition-colors shrink-0"
@@ -335,7 +347,9 @@ export default function GameSessionView({
                             aria-label="Głośność"
                             onChange={(e) => {
                                 setVolume(parseFloat(e.target.value));
-                                inputRef.current?.focus();
+                                if (shouldAutoFocus()) {
+                                    inputRef.current?.focus();
+                                }
                             }}
                             className="w-32 sm:w-40 h-1.5 bg-gray-700/60 rounded-full appearance-none cursor-pointer
                                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-gray-400 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:hover:bg-green-400 [&::-webkit-slider-thumb]:transition-colors
