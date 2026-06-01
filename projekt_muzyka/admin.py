@@ -103,143 +103,298 @@ class BannerPositionWidget(forms.widgets.NumberInput):
         base_html = super().render(name, value, attrs, renderer)
         final_attrs = self.build_attrs(self.attrs, attrs)
         cover_url = final_attrs.get('data-cover-url', '')
-        val = value if value is not None else 35
         
         editor_html = f"""
-        <div class="banner-position-editor-container" style="margin-top: 10px; max-width: 600px;">
-            <div id="banner-position-preview" style="
-                position: relative; 
-                width: 100%; 
-                height: 150px; 
-                border-radius: 12px; 
-                overflow: hidden; 
-                background: #111; 
-                border: 2px solid #444; 
-                cursor: grab;
-                user-select: none;
-                margin-bottom: 5px;
-            ">
-                <img id="banner-position-image" src="{cover_url}" style="
-                    width: 100%; 
-                    height: 100%; 
-                    object-fit: cover; 
-                    object-position: center {val}%;
-                    pointer-events: none;
-                    display: {'block' if cover_url else 'none'};
-                " />
-                
-                <div style="
-                    position: absolute; 
-                    inset: 0; 
-                    border: 1px dashed rgba(34, 197, 94, 0.4); 
-                    pointer-events: none;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                ">
-                    <span style="
-                        background: rgba(0,0,0,0.75); 
-                        color: #22c55e; 
-                        padding: 6px 10px; 
-                        font-size: 11px; 
-                        font-weight: bold; 
-                        border-radius: 6px;
-                        border: 1px solid rgba(34, 197, 94, 0.3);
-                        pointer-events: none;
-                    ">PRZECIĄGNIJ W PIONIE, ABY DOPASOWAĆ KADR</span>
-                </div>
+        <style>
+        .banner-position-widget-wrapper {{
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 300px;
+            margin-top: 10px;
+        }}
+        .banner-crop-container {{
+            position: relative;
+            width: 240px;
+            height: 240px;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #0f172a;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            user-select: none;
+            margin-top: 4px;
+        }}
+        .banner-crop-image {{
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }}
+        .banner-crop-viewport {{
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            border-top: 2px dashed #22c55e;
+            border-bottom: 2px dashed #22c55e;
+            box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65);
+            cursor: grab;
+            display: none;
+            box-sizing: border-box;
+            z-index: 10;
+        }}
+        .banner-crop-viewport:active {{
+            cursor: grabbing;
+        }}
+        .banner-crop-handle {{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.85);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            border-radius: 20px;
+            text-transform: uppercase;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }}
+        .banner-crop-placeholder {{
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+        }}
+        </style>
+        
+        <div class="banner-position-widget-wrapper">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 13px; color: #64748b; font-weight: 500;">Wartość (%):</span>
+                {base_html}
             </div>
             
-            <p style="margin-top: 6px; font-size: 12px; color: #999;">
-                Pozycja pionowa baneru: <strong id="banner-position-val-text" style="color: #22c55e;">{val}</strong>%
-            </p>
+            <div class="banner-crop-container">
+                <img id="banner-position-image" class="banner-crop-image" src="" />
+                <div id="banner-position-viewport" class="banner-crop-viewport">
+                    <div class="banner-crop-handle">Baner</div>
+                </div>
+                <div id="banner-position-placeholder" class="banner-crop-placeholder">
+                    <svg style="width: 36px; height: 36px; color: #475569; margin-bottom: 8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span style="font-size: 12px; font-weight: 500; color: #64748b;">Wybierz okładkę powyżej, aby dostosować kadr baneru</span>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                Przeciągnij zielony kadr w pionie, aby wybrać obszar widoczny na głównym banerze strony.
+            </div>
         </div>
         
         <script>
         (function() {{
             function init() {{
-                const inputEl = document.getElementById("{final_attrs.get('id', 'id_' + name)}");
-                const previewEl = document.getElementById("banner-position-preview");
+                const inputId = "{final_attrs.get('id', 'id_' + name)}";
+                const inputEl = document.getElementById(inputId);
                 const imgEl = document.getElementById("banner-position-image");
-                const valText = document.getElementById("banner-position-val-text");
-                const fileInputEl = document.querySelector("input[type='file'][name='cover_image']");
+                const viewportEl = document.getElementById("banner-position-viewport");
+                const placeholderEl = document.getElementById("banner-position-placeholder");
                 
-                if (!inputEl || !previewEl || !imgEl || !valText) return;
+                if (!inputEl || !imgEl || !viewportEl) return;
+                
+                const cover_url = "{cover_url}";
+                
+                function showImage(src) {{
+                    imgEl.src = src;
+                    imgEl.style.display = "block";
+                    viewportEl.style.display = "block";
+                    if (placeholderEl) placeholderEl.style.display = "none";
+                }}
+                
+                function hideImage() {{
+                    imgEl.removeAttribute("src");
+                    imgEl.style.display = "none";
+                    viewportEl.style.display = "none";
+                    if (placeholderEl) placeholderEl.style.display = "flex";
+                }}
+                
+                const CONTAINER_H = 240;
+                const VIEWPORT_H = 80;
+                const MAX_TOP = CONTAINER_H - VIEWPORT_H;
+                
+                function updateFromTop(topPx) {{
+                    topPx = Math.max(0, Math.min(MAX_TOP, topPx));
+                    viewportEl.style.top = topPx + "px";
+                    const percent = Math.round((topPx / MAX_TOP) * 100);
+                    inputEl.value = percent;
+                }}
+                
+                function updateFromPercent(percent) {{
+                    percent = Math.max(0, Math.min(100, parseInt(percent, 10) || 0));
+                    inputEl.value = percent;
+                    const topPx = (percent / 100) * MAX_TOP;
+                    viewportEl.style.top = topPx + "px";
+                }}
+                
+                const initialVal = parseInt(inputEl.value, 10) || 35;
+                updateFromPercent(initialVal);
+                
+                if (cover_url) {{
+                    showImage(cover_url);
+                    updateFromPercent(initialVal);
+                }} else {{
+                    hideImage();
+                }}
                 
                 let isDragging = false;
                 let startY = 0;
-                let startPercent = parseFloat(inputEl.value) || 35;
+                let startTop = 0;
                 
-                function updatePosition(percent) {{
-                    percent = Math.max(0, Math.min(100, Math.round(percent)));
-                    inputEl.value = percent;
-                    valText.innerText = percent;
-                    imgEl.style.objectPosition = `center ${{percent}}%`;
+                function onStart(clientY) {{
+                    isDragging = true;
+                    startY = clientY;
+                    startTop = parseFloat(viewportEl.style.top) || 0;
+                    viewportEl.style.cursor = "grabbing";
                 }}
                 
-                previewEl.addEventListener("mousedown", function(e) {{
-                    if (!imgEl.src || imgEl.style.display === "none") return;
-                    isDragging = true;
-                    startY = e.clientY;
-                    startPercent = parseFloat(inputEl.value) || 35;
-                    previewEl.style.cursor = "grabbing";
+                function onMove(clientY) {{
+                    if (!isDragging) return;
+                    const dy = clientY - startY;
+                    updateFromTop(startTop + dy);
+                }}
+                
+                function onEnd() {{
+                    if (isDragging) {{
+                        isDragging = false;
+                        viewportEl.style.cursor = "grab";
+                    }}
+                }}
+                
+                viewportEl.addEventListener("mousedown", function(e) {{
+                    onStart(e.clientY);
                     e.preventDefault();
                 }});
                 
                 document.addEventListener("mousemove", function(e) {{
-                    if (!isDragging) return;
-                    const dy = e.clientY - startY;
-                    const deltaPercent = (dy / previewEl.clientHeight) * 100;
-                    updatePosition(startPercent - deltaPercent);
+                    onMove(e.clientY);
                 }});
                 
-                document.addEventListener("mouseup", function() {{
-                    if (isDragging) {{
-                        isDragging = false;
-                        previewEl.style.cursor = "grab";
+                document.addEventListener("mouseup", onEnd);
+                
+                viewportEl.addEventListener("touchstart", function(e) {{
+                    if (e.touches.length > 0) {{
+                        onStart(e.touches[0].clientY);
                     }}
-                }});
-                
-                previewEl.addEventListener("touchstart", function(e) {{
-                    if (!imgEl.src || imgEl.style.display === "none") return;
-                    isDragging = true;
-                    startY = e.touches[0].clientY;
-                    startPercent = parseFloat(inputEl.value) || 35;
                 }}, {{ passive: true }});
                 
                 document.addEventListener("touchmove", function(e) {{
-                    if (!isDragging) return;
-                    const dy = e.touches[0].clientY - startY;
-                    const deltaPercent = (dy / previewEl.clientHeight) * 100;
-                    updatePosition(startPercent - deltaPercent);
+                    if (isDragging && e.touches.length > 0) {{
+                        onMove(e.touches[0].clientY);
+                    }}
                 }}, {{ passive: true }});
                 
-                document.addEventListener("touchend", function() {{
-                    isDragging = false;
-                }});
+                document.addEventListener("touchend", onEnd);
                 
                 inputEl.addEventListener("input", function() {{
-                    let val = parseFloat(inputEl.value);
-                    if (isNaN(val)) val = 35;
-                    imgEl.style.objectPosition = `center ${{val}}%`;
-                    valText.innerText = val;
+                    const val = parseInt(inputEl.value, 10);
+                    if (!isNaN(val)) {{
+                        updateFromPercent(val);
+                    }}
                 }});
                 
-                if (fileInputEl) {{
-                    fileInputEl.addEventListener("change", function(e) {{
+                function bindFileInput(fileInput) {{
+                    fileInput.addEventListener("change", function(e) {{
                         const file = e.target.files[0];
                         if (file) {{
+                            const clearCheckbox = document.getElementById("cover_image-clear_id") || document.querySelector("input[type='checkbox'][name='cover_image-clear']");
+                            if (clearCheckbox) clearCheckbox.checked = false;
+                            
                             const reader = new FileReader();
                             reader.onload = function(evt) {{
-                                imgEl.src = evt.target.result;
-                                imgEl.style.display = "block";
+                                showImage(evt.target.result);
+                                updateFromPercent(inputEl.value);
                             }};
                             reader.readAsDataURL(file);
+                        }} else {{
+                            if (cover_url) {{
+                                showImage(cover_url);
+                                updateFromPercent(inputEl.value);
+                            }} else {{
+                                hideImage();
+                            }}
                         }}
                     }});
                 }}
+                
+                function bindClearCheckbox(clearCheckbox) {{
+                    clearCheckbox.addEventListener("change", function() {{
+                        if (this.checked) {{
+                            hideImage();
+                        }} else {{
+                            const fileInput = document.getElementById("id_cover_image") || document.querySelector("input[type='file'][name='cover_image']");
+                            if (fileInput && fileInput.files && fileInput.files[0]) {{
+                                const reader = new FileReader();
+                                reader.onload = function(evt) {{
+                                    showImage(evt.target.result);
+                                    updateFromPercent(inputEl.value);
+                                }};
+                                reader.readAsDataURL(fileInput.files[0]);
+                            }} else if (cover_url) {{
+                                showImage(cover_url);
+                                updateFromPercent(inputEl.value);
+                            }} else {{
+                                hideImage();
+                            }}
+                        }}
+                    }});
+                }}
+                
+                let fileInputEl = document.getElementById("id_cover_image") || document.querySelector("input[type='file'][name='cover_image']");
+                if (fileInputEl) {{
+                    bindFileInput(fileInputEl);
+                }} else {{
+                    let fileAttempts = 0;
+                    const fileInterval = setInterval(() => {{
+                        fileInputEl = document.getElementById("id_cover_image") || document.querySelector("input[type='file'][name='cover_image']");
+                        if (fileInputEl) {{
+                            clearInterval(fileInterval);
+                            bindFileInput(fileInputEl);
+                        }}
+                        fileAttempts++;
+                        if (fileAttempts > 25) clearInterval(fileInterval);
+                    }}, 200);
+                }}
+                
+                let clearCheckboxEl = document.getElementById("cover_image-clear_id") || document.querySelector("input[type='checkbox'][name='cover_image-clear']");
+                if (clearCheckboxEl) {{
+                    bindClearCheckbox(clearCheckboxEl);
+                }} else {{
+                    let clearAttempts = 0;
+                    const clearIntervalId = setInterval(() => {{
+                        clearCheckboxEl = document.getElementById("cover_image-clear_id") || document.querySelector("input[type='checkbox'][name='cover_image-clear']");
+                        if (clearCheckboxEl) {{
+                            clearInterval(clearIntervalId);
+                            bindClearCheckbox(clearCheckboxEl);
+                        }}
+                        clearAttempts++;
+                        if (clearAttempts > 25) clearInterval(clearIntervalId);
+                    }}, 200);
+                }}
             }}
-
+            
             if (document.readyState === "loading") {{
                 document.addEventListener("DOMContentLoaded", init);
             }} else {{
@@ -249,7 +404,7 @@ class BannerPositionWidget(forms.widgets.NumberInput):
         </script>
         """
         from django.utils.safestring import mark_safe
-        return mark_safe(base_html + editor_html)
+        return mark_safe(editor_html)
 
 
 class QuizAdminForm(forms.ModelForm):

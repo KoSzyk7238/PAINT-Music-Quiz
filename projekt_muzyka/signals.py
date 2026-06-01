@@ -1,7 +1,7 @@
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.utils.text import slugify
-from projekt_muzyka.models import Song, Question, Genre
+from projekt_muzyka.models import Song, Question, Genre, Quiz
 from projekt_muzyka.utils import get_main_category_name, update_quiz_genre
 
 @receiver(pre_save, sender=Song)
@@ -43,3 +43,11 @@ def question_saved(sender, instance, **kwargs):
 def question_deleted(sender, instance, **kwargs):
     if instance.quiz:
         update_quiz_genre(instance.quiz)
+
+
+@receiver(post_save, sender=Quiz)
+def quiz_saved(sender, instance, created, **kwargs):
+    # Avoid recursive loops when update_quiz_genre saves the genre field
+    if kwargs.get('update_fields') and 'genre' in kwargs.get('update_fields'):
+        return
+    update_quiz_genre(instance)

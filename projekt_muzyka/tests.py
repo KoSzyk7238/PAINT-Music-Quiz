@@ -661,6 +661,20 @@ class GenreClassificationTests(APITestCase):
         self.assertIsNotNone(song1.category)
         self.assertEqual(song1.category.name, "Rock")
 
+    def test_quiz_saved_signal_reclassifies(self):
+        genre_rock_raw = Genre.objects.create(name="Grunge", slug="grunge")
+        song1 = Song.objects.create(title="Rock 1", artist="Artist 1", genre=genre_rock_raw)
+        quiz = Quiz.objects.create(title="Signal Test Quiz")
+        Question.objects.create(quiz=quiz, song=song1)
+        
+        # Manually clear the quiz genre and save to trigger signal
+        quiz.genre = None
+        quiz.save()
+        
+        quiz.refresh_from_db()
+        self.assertIsNotNone(quiz.genre)
+        self.assertEqual(quiz.genre.name, "Rock")
+
 
 class AppleMusicCoverTests(TestCase):
     @patch('projekt_muzyka.apple_music.requests.get')
