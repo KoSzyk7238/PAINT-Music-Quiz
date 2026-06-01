@@ -133,6 +133,9 @@ def import_quiz_from_playlist(
 
             if existing_quiz:
                 quiz = existing_quiz
+                if not quiz.imported_from_playlist_url:
+                    quiz.imported_from_playlist_url = playlist_url
+                    quiz.save(update_fields=["imported_from_playlist_url"])
                 if not quiz.cover_image and cover_data:
                     quiz.cover_image.save("cover.jpg", ContentFile(cover_data), save=True)
             else:
@@ -142,6 +145,7 @@ def import_quiz_from_playlist(
                     difficulty=difficulty,
                     num_questions_to_ask=num_questions_to_ask,
                     time_limit=time_limit,
+                    imported_from_playlist_url=playlist_url,
                 )
                 if cover_data:
                     quiz.cover_image.save("cover.jpg", ContentFile(cover_data), save=True)

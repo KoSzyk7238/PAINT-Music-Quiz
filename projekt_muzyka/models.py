@@ -52,6 +52,7 @@ class Quiz(models.Model):
     num_questions_to_ask = models.IntegerField(default=10, verbose_name="Liczba pytań w grze")
     time_limit = models.IntegerField(default=15, verbose_name="Długość odtwarzania utworu (sekundy)")
     is_random = models.BooleanField(default=False, verbose_name="Czy losowy?")
+    imported_from_playlist_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="Importowano z playlisty (URL)")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data utworzenia")
 
     def __str__(self):

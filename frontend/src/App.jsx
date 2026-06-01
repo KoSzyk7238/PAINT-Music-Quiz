@@ -984,13 +984,13 @@ function GameView() {
               </button>
           )}
 
-          <div className="mb-4 sm:mb-6 text-center mt-2 sm:mt-4">
+          <div className="mb-4 sm:mb-6 text-center mt-2 sm:mt-4 px-12 sm:px-0">
             {!currentQuiz ? (
-                <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                <h1 className="text-3xl xs:text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
                   JAKI TO SYGNAŁ?
                 </h1>
             ) : (
-                <h1 className="text-2xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-2 sm:mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                <h1 className="text-xl xs:text-2xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-2 sm:mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
                   JAKI TO SYGNAŁ?
                 </h1>
             )}
