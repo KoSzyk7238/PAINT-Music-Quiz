@@ -9,6 +9,14 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])'
 ].join(',');
 
+const shouldAutoFocus = () => {
+  if (typeof window === 'undefined') return false;
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const hasTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  const isSmallScreen = window.innerWidth <= 1024;
+  return !(isMobileUA || (hasTouch && isSmallScreen));
+};
+
 export default function useDialogFocus(isOpen, onClose) {
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
@@ -66,7 +74,13 @@ export default function useDialogFocus(isOpen, onClose) {
     return () => {
       window.clearTimeout(focusTimer);
       document.removeEventListener('keydown', handleKeyDown, true);
-      previousFocusRef.current?.focus?.();
+      const prevEl = previousFocusRef.current;
+      if (prevEl && typeof prevEl.focus === 'function') {
+        const isInputOrTextarea = prevEl.tagName === 'INPUT' || prevEl.tagName === 'TEXTAREA';
+        if (!isInputOrTextarea || shouldAutoFocus()) {
+          prevEl.focus();
+        }
+      }
     };
   }, [isOpen, onClose]);
 

@@ -4,8 +4,10 @@ import useDialogFocus from '../hooks/useDialogFocus';
 
 const shouldAutoFocus = () => {
     if (typeof window === 'undefined') return false;
-    // Check if the user agent matches common mobile/tablet devices
-    return !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const hasTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 1024;
+    return !(isMobileUA || (hasTouch && isSmallScreen));
 };
 
 export default function GameSessionView({
