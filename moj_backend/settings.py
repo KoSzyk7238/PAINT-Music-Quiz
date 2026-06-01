@@ -157,3 +157,6 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Settings for django-import-export
 IMPORT_EXPORT_USE_TRANSACTIONS = True
+
+# Allow saving very large quizzes with hundreds of questions in Django Admin
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
