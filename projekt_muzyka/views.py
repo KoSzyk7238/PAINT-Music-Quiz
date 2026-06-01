@@ -561,8 +561,17 @@ class GameSessionAttemptCreate(APIView):
             
             session_time_limit = GameSession.DIFFICULTY_TIME_MAP.get(session.chosen_difficulty, 15)
             base_points = calculate_time_score(question.points, question.min_points, time_taken_seconds, session_time_limit)
+            
+            # Difficulty multipliers to reward harder games with more points
+            diff_multipliers = {
+                'EASY': 1.0,
+                'MEDIUM': 1.5,
+                'HARD': 2.0,
+            }
+            difficulty_multiplier = diff_multipliers.get(session.chosen_difficulty, 1.5)
+            
             bonus_multiplier = 1.0 + min(consecutive_correct * 0.1, 1.0)
-            points_awarded = int(base_points * bonus_multiplier)
+            points_awarded = int(base_points * bonus_multiplier * difficulty_multiplier)
 
         attempt = QuestionAttempt.objects.create(
             session=session,
@@ -814,6 +823,23 @@ class StatsView(APIView):
             "genre_distribution": genre_distribution,
             "decade_distribution": decade_distribution,
         })
+
+class ArtistSearchView(APIView):
+    """Podpowiedzi nazw artystów z MusicBrainz (dla formularza quizu o artyście)."""
+
+    def get(self, request, *args, **kwargs):
+        query = (request.query_params.get('q') or '').strip()
+        if len(query) < 2:
+            return Response([])
+
+        artists = music_api.search_artist(query, limit=10)
+        results = [
+            {"id": artist.get("id"), "name": artist.get("name")}
+            for artist in artists
+            if artist.get("name")
+        ]
+        return Response(results)
+
 
 class CreateQuizFromArtistView(APIView):
     def post(self, request, *args, **kwargs):

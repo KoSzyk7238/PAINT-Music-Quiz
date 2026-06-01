@@ -1,4 +1,8 @@
+import json
 import re
+import html as html_lib
+from urllib.parse import unquote
+
 import requests
 
 
@@ -134,11 +138,54 @@ def extract_track_ids_from_playlist_url(playlist_url):
     return unique_ids
 
 
+def _normalize_playlist_text(text: str) -> str:
+    return html_lib.unescape(text or "").replace("\u200e", "").replace("\u200f", "").strip()
+
+
+def _playlist_title_from_url_slug(playlist_url: str) -> str:
+    match = re.search(r"/playlist/([^/]+)/", playlist_url)
+    if not match:
+        return ""
+    slug = unquote(match.group(1)).replace("-", " ").replace("_", " ").strip()
+    return slug
+
+
+def _extract_playlist_name_from_html(html: str) -> str | None:
+    """Nazwa playlisty z JSON-LD lub og:title — bez tagu <title> (ma dopiski Apple Music)."""
+    ld_json_blocks = re.findall(
+        r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
+        html,
+        re.DOTALL,
+    )
+    for block in ld_json_blocks:
+        try:
+            data = json.loads(block.strip())
+            candidates = data if isinstance(data, list) else [data]
+            for item in candidates:
+                if (
+                    isinstance(item, dict)
+                    and item.get("@type") == "MusicPlaylist"
+                    and item.get("name")
+                ):
+                    return _normalize_playlist_text(str(item["name"]))
+        except Exception:
+            pass
+
+    og_title_match = re.search(
+        r'<meta[^>]*property="og:title"[^>]*content="([^"]+)"',
+        html,
+        re.IGNORECASE,
+    )
+    if og_title_match:
+        return _normalize_playlist_text(og_title_match.group(1))
+
+    return None
+
+
 def fetch_multiple_apple_music_metadata(track_ids, country="pl"):
     if not track_ids:
         return {}
 
-    import json
     results_dict = {}
     # Chunk into sizes of 100 for safety with the API
     for i in range(0, len(track_ids), 100):
@@ -173,36 +220,33 @@ def fetch_multiple_apple_music_metadata(track_ids, country="pl"):
 
 
 def extract_playlist_name_and_desc(playlist_url):
-    import html as html_lib
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7"
+        "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7",
     }
-    title = "Nowy Quiz Apple Music"
+    title = _playlist_title_from_url_slug(playlist_url) or "Nowy Quiz Apple Music"
     description = ""
     try:
         resp = requests.get(playlist_url, headers=headers, timeout=5)
         if resp.status_code == 200:
             html = resp.content.decode("utf-8", errors="replace")
-            title_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE)
-            if title_match:
-                title = title_match.group(1).strip()
 
-            desc_match = re.search(r'<meta[^>]*property="og:description"[^>]*content="([^"]+)"', html)
+            raw_title = _extract_playlist_name_from_html(html)
+            if raw_title:
+                title = raw_title
+
+            desc_match = re.search(
+                r'<meta[^>]*property="og:description"[^>]*content="([^"]+)"',
+                html,
+            )
             if not desc_match:
-                desc_match = re.search(r'<meta[^>]*name="description"[^>]*content="([^"]+)"', html)
+                desc_match = re.search(
+                    r'<meta[^>]*name="description"[^>]*content="([^"]+)"',
+                    html,
+                )
             if desc_match:
-                description = desc_match.group(1).strip()
-
-            title = html_lib.unescape(title).replace('\u200e', '').replace('\u200f', '').strip()
-            description = html_lib.unescape(description).replace('\u200e', '').replace('\u200f', '').strip()
-
-            # Czyszczenie nazwy playlisty z dopisków Apple Music i informacji o autorze
-            title = re.sub(r'\s*(?:w|on)\s+Apple\s+Music$', '', title, flags=re.IGNORECASE)
-            title = re.sub(r'\s*[-–]\s*(?:playlista|playlist)\s+(?:użytkownika|by)\s+.*$', '', title, flags=re.IGNORECASE)
-            title = re.sub(r'\s*[-–]\s*(?:playlista|playlist)\s*$', '', title, flags=re.IGNORECASE)
-            title = re.sub(r'\b(?:playlista\s+użytkownika|playlist\s+by)\s+.*$', '', title, flags=re.IGNORECASE)
-            title = title.strip()
+                description = html_lib.unescape(desc_match.group(1).strip())
+                description = description.replace("\u200e", "").replace("\u200f", "").strip()
     except Exception:
         pass
     return title, description

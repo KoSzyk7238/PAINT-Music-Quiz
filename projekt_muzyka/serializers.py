@@ -170,7 +170,13 @@ class QuizSerializer(serializers.ModelSerializer):
                 q_count = s.total_questions if s.total_questions > 0 else s.attempts.count()
 
             if q_count > 0:
-                max_possible = q_count * 3000
+                diff_multipliers = {
+                    'EASY': 1.0,
+                    'MEDIUM': 1.5,
+                    'HARD': 2.0,
+                }
+                diff_mult = diff_multipliers.get(s.chosen_difficulty, 1.5)
+                max_possible = q_count * 3000 * diff_mult
                 percentages.append(min(100.0, (s.total_points / max_possible) * 100))
             if s.average_time_seconds:
                 times.append(s.average_time_seconds)
@@ -279,7 +285,8 @@ class UserPublicSerializer(serializers.ModelSerializer):
 
 class UserScoreSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
+    chosen_difficulty = serializers.ReadOnlyField(source='session.chosen_difficulty')
 
     class Meta:
         model = UserScore
-        fields = ['id', 'user', 'quiz', 'score', 'correct_count', 'total_questions', 'average_time_seconds', 'played_at']
+        fields = ['id', 'user', 'quiz', 'score', 'correct_count', 'total_questions', 'average_time_seconds', 'played_at', 'chosen_difficulty']

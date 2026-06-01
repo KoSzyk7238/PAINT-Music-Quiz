@@ -37,14 +37,28 @@ import Friends from './components/Friends';
 import Profile from './components/Profile';
 import Sidebar from './components/Sidebar';
 import AuthModal from './components/AuthModal';
+import Footer from './components/Footer';
+import ToastContainer from './components/ToastContainer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import HomeView from './components/HomeView';
 import GameSessionView from './components/GameSessionView';
 import SummaryView from './components/SummaryView';
+import AboutPage from './pages/AboutPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import NotFoundPage from './pages/NotFoundPage';
+import AppLayout from './components/AppLayout';
+
 import { pytaniaPlural } from './utils/plurals';
 import useDialogFocus from './hooks/useDialogFocus';
+import usePageTitle from './hooks/usePageTitle';
+import { useToast, ToastProvider } from './context/ToastContext';
+import { useAuth, AuthProvider } from './context/AuthContext';
+import { parseApiError } from './utils/api';
 
 function GameView() {
+  usePageTitle(null);
   const [inputValue, setInputValue] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
@@ -100,7 +114,10 @@ function GameView() {
     );
   };
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn, refreshUser } = useAuth();
+  const { showToast } = useToast();
+  const lastSessionConfigRef = useRef(null);
+  const deepLinkHandledRef = useRef(false);
 
   const audioRef = useRef(null);
   const nextQuestionTimeoutRef = useRef(null);
@@ -218,25 +235,23 @@ function GameView() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!isLoggedIn) return;
       try {
         const res = await fetch('/api/profile/');
         if (res.ok) {
           const data = await res.json();
           setGlobalStreak(data.current_streak);
           setGlobalPoints(data.total_points);
-          setIsLoggedIn(true);
-        } else {
-          setIsLoggedIn(false);
         }
       } catch (err) {
         console.error(err);
-        setIsLoggedIn(false);
       }
     };
 
     const fetchQuizzes = async () => {
       try {
         setIsLoadingQuizzes(true);
+        setApiDebug(null);
         const res = await fetch('/api/quizzes/');
         if (res.ok) {
           const data = await res.json();
@@ -245,15 +260,20 @@ function GameView() {
           } else if (data && Array.isArray(data.results)) {
             setQuizzes(data.results);
           } else {
-             setApiDebug(`Otrzymano dziwny format: ${JSON.stringify(data).substring(0, 100)}`);
+             const msg = 'Otrzymano nieoczekiwany format listy quizów.';
+             setApiDebug(msg);
+             showToast(msg, 'error');
           }
         } else {
-            const errText = await res.text();
-            setApiDebug(`Błąd serwera (Kod ${res.status}): ${errText.substring(0, 200)}`);
+            const errText = await parseApiError(res);
+            setApiDebug(`Błąd serwera (Kod ${res.status}): ${errText}`);
+            showToast(errText, 'error');
         }
       } catch (err) {
         console.error(err);
-        setApiDebug(`Błąd sieci: ${err.message}`);
+        const msg = `Błąd sieci: ${err.message}`;
+        setApiDebug(msg);
+        showToast('Nie udało się załadować quizów. Sprawdź połączenie.', 'error');
       } finally {
         setIsLoadingQuizzes(false);
       }
@@ -265,16 +285,19 @@ function GameView() {
         if (res.ok) {
           const data = await res.json();
           setGenres(Array.isArray(data) ? data : (data.results || []));
+        } else {
+          showToast('Nie udało się załadować gatunków.', 'error');
         }
       } catch (err) {
         console.error("Failed to fetch genres:", err);
+        showToast('Nie udało się załadować gatunków.', 'error');
       }
     };
 
     fetchProfile();
     fetchQuizzes();
     fetchGenres();
-  }, []);
+  }, [isLoggedIn, showToast]);
 
   // Reset indeksu podpowiedzi przy zmianie tekstu
   useEffect(() => {
@@ -382,6 +405,51 @@ function GameView() {
     }
   };
 
+  useEffect(() => {
+    if (deepLinkHandledRef.current || isLoadingQuizzes || currentQuiz || sessionSummary) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const quizId = params.get('quiz');
+    if (!quizId) return;
+
+    deepLinkHandledRef.current = true;
+    const challengeScore = params.get('score');
+    const challengeDifficulty = params.get('difficulty');
+    window.history.replaceState({}, '', window.location.pathname);
+
+    const openFromShareLink = async () => {
+      const fromList = quizzes.find((q) => String(q.id) === quizId);
+      if (fromList) {
+        await handleSelectQuizForPreview(fromList);
+      } else {
+        try {
+          const res = await fetch(`/api/quizzes/${quizId}/`);
+          if (res.ok) {
+            await handleSelectQuizForPreview(await res.json());
+          } else {
+            showToast('Nie znaleziono quizu z linku.', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Nie udało się otworzyć quizu z linku.', 'error');
+        }
+      }
+
+      if (challengeDifficulty) {
+        setChosenDifficulty(challengeDifficulty);
+      }
+
+      if (challengeScore) {
+        const diffMsg = challengeDifficulty ? ` na poziomie ${DIFFICULTY_LABELS[challengeDifficulty] || challengeDifficulty}` : '';
+        showToast(`Znajomy zdobył ${challengeScore} pkt${diffMsg} — pobij ten wynik!`, 'info');
+      }
+    };
+
+    openFromShareLink();
+  }, [isLoadingQuizzes, quizzes, currentQuiz, sessionSummary, showToast]);
+
   const startSession = async (quiz, difficulty, numQuestions) => {
     if (nextQuestionTimeoutRef.current) {
         clearTimeout(nextQuestionTimeoutRef.current);
@@ -408,9 +476,11 @@ function GameView() {
         if (res.ok) {
           fullQuiz = await res.json();
         } else {
-          const errData = await res.json();
-          console.error("Failed to generate random quiz:", errData.error);
-          setApiDebug(errData.error || "Wystąpił błąd podczas generowania losowego quizu.");
+          const errData = await res.json().catch(() => ({}));
+          const msg = errData.error || "Wystąpił błąd podczas generowania losowego quizu.";
+          console.error("Failed to generate random quiz:", msg);
+          setApiDebug(msg);
+          showToast(msg, 'error');
           setIsLoadingQuizDetail(false);
           return;
         }
@@ -451,6 +521,14 @@ function GameView() {
     }));
     const quizWithShuffled = { ...fullQuiz, questions: questionsWithTimeOverride };
 
+    lastSessionConfigRef.current = {
+      quiz,
+      difficulty: sessionDifficulty,
+      numQuestions: limit,
+      isRandom: !!quiz.isRandomQuizPlaceholder,
+      randomGenreIds: quiz.isRandomQuizPlaceholder ? [...selectedRandomGenreIds] : [],
+    };
+
     setCurrentQuiz(quizWithShuffled);
     setCurrentQuestionIndex(0);
     setSessionSummary(null);
@@ -479,6 +557,22 @@ function GameView() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handlePlayAgain = () => {
+    const cfg = lastSessionConfigRef.current;
+    if (!cfg) return;
+    setSessionSummary(null);
+    if (cfg.isRandom) {
+      setSelectedRandomGenreIds(cfg.randomGenreIds);
+      startSession(
+        { id: 'random', title: 'Losowy Quiz', isRandomQuizPlaceholder: true },
+        cfg.difficulty,
+        cfg.numQuestions
+      );
+    } else {
+      startSession(cfg.quiz, cfg.difficulty, cfg.numQuestions);
     }
   };
 
@@ -741,11 +835,14 @@ function GameView() {
                  fadeInAudio();
              }
         } else {
-            setIsSubmitting(false); // Odblokowujemy w razie błędu serwera
+            const msg = await parseApiError(res);
+            showToast(msg, 'error');
+            setIsSubmitting(false);
         }
     } catch(err) {
         console.error(err);
-        setIsSubmitting(false); // Odblokowujemy w razie błędu połączenia
+        showToast('Nie udało się wysłać odpowiedzi. Sprawdź połączenie.', 'error');
+        setIsSubmitting(false);
     }
   };
 
@@ -754,10 +851,14 @@ function GameView() {
           const response = await fetch(`/api/sessions/${sessionId}/finish/`, { method: 'POST' });
           if (response.ok) {
               const data = await response.json();
-              setSessionSummary(data); 
+              setSessionSummary(data);
+              refreshUser();
+          } else {
+              showToast(await parseApiError(response), 'error');
           }
       } catch (err) {
           console.error(err);
+          showToast('Nie udało się zakończyć sesji.', 'error');
       } finally {
           setIsSubmitting(false);
       }
@@ -956,11 +1057,14 @@ function GameView() {
           {sessionSummary && (
              <SummaryView 
                 sessionSummary={sessionSummary} 
+                sessionId={sessionId}
                 currentQuiz={currentQuiz} 
                 isLoggedIn={isLoggedIn}
+                guestSessionPending={!isLoggedIn && !!sessionId}
                 maxStreak={maxStreak}
                 fastestCorrectTime={fastestCorrectTime}
                 totalTimeTaken={totalTimeTaken}
+                onPlayAgain={handlePlayAgain}
                 onLoginClick={() => setActiveModal('login')}
                 onRegisterClick={() => setActiveModal('register')}
                 onFinish={() => {
@@ -969,6 +1073,8 @@ function GameView() {
                 }} 
              />
           )}
+
+          {(!currentQuiz || sessionSummary) && <Footer compact />}
         </div>
 
         <Sidebar
@@ -1175,9 +1281,15 @@ function GameView() {
                                 <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider">
                                   {DIFFICULTY_LABELS[diff]}
                                 </span>
-                                <span className={`text-[9px] sm:text-[10px] font-bold flex items-center gap-0.5 ${isSelected ? colors.time : 'text-gray-600'}`}>
-                                  <Timer size={9} className="sm:w-[10px] sm:h-[10px]" />
-                                  {DIFFICULTY_TIME_MAP[diff]}s
+                                <span className={`text-[9px] sm:text-[10px] font-bold flex items-center gap-1.5 ${isSelected ? colors.time : 'text-gray-600'}`}>
+                                  <span className="flex items-center gap-0.5">
+                                    <Timer size={9} className="sm:w-[10px] sm:h-[10px]" />
+                                    {DIFFICULTY_TIME_MAP[diff]}s
+                                  </span>
+                                  <span className="opacity-40">•</span>
+                                  <span className={isSelected ? 'font-black opacity-90' : 'opacity-50'}>
+                                    {diff === 'EASY' ? '1.0' : diff === 'MEDIUM' ? '1.5' : '2.0'}x pkt
+                                  </span>
                                 </span>
                               </button>
                             );
@@ -1375,13 +1487,45 @@ function GameView() {
 
 export default function App() {
   return (
-      <Router>
-        <Routes>
-          <Route path="/" element={<GameView />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/stats" element={<Stats />} />
-          <Route path="/friends" element={<Friends />} />
-        </Routes>
-      </Router>
+    <ToastProvider>
+      <AuthProvider>
+        <ErrorBoundary>
+          <Router>
+            <ToastContainer />
+            <Routes>
+              <Route path="/" element={<GameView />} />
+              <Route
+                path="/profile"
+                element={
+                  <AppLayout title="Profil">
+                    <Profile />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/stats"
+                element={
+                  <AppLayout title="Statystyki">
+                    <Stats />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/friends"
+                element={
+                  <AppLayout title="Ranking">
+                    <Friends />
+                  </AppLayout>
+                }
+              />
+              <Route path="/o-aplikacji" element={<AboutPage />} />
+              <Route path="/polityka-prywatnosci" element={<PrivacyPage />} />
+              <Route path="/regulamin" element={<TermsPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Router>
+        </ErrorBoundary>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

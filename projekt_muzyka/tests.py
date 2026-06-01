@@ -553,6 +553,47 @@ class RandomQuizTests(APITestCase):
         self.assertEqual(response.data["is_correct"], True)
         self.assertEqual(response.data["points_awarded"], 1550) # EASY (30s limit) calculation
 
+    def test_medium_and_hard_quiz_points_calculation_difficulty_based(self):
+        quiz = Quiz.objects.create(title="Losowy Quiz", is_random=True)
+        song = Song.objects.get(title="Rock Song 0")
+        question = Question.objects.create(quiz=quiz, song=song)
+
+        # 1. MEDIUM difficulty (multiplier 1.5, limit 15s)
+        # time_taken = 8.5 seconds.
+        # grace_period = 2.0. ratio = (8.5 - 2) / (15 - 2) = 6.5 / 13.0 = 0.5.
+        # delta = (3000 - 100) * 0.5 = 1450.
+        # base_score = 3000 - 1450 = 1550.
+        # score = int(1550 * 1.5) = 2325.
+        session_medium = GameSession.objects.create(quiz=quiz, chosen_difficulty="MEDIUM")
+        url_medium = reverse('session-attempts', kwargs={'session_id': session_medium.id})
+        data_medium = {
+            "question_id": question.id,
+            "answer_text": "Rock Song 0",
+            "time_taken_seconds": 8.5
+        }
+        response_medium = self.client.post(url_medium, data_medium, format="json")
+        self.assertEqual(response_medium.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response_medium.data["is_correct"], True)
+        self.assertEqual(response_medium.data["points_awarded"], 2325)
+
+        # 2. HARD difficulty (multiplier 2.0, limit 5s)
+        # time_taken = 3.5 seconds.
+        # grace_period = 2.0. ratio = (3.5 - 2) / (5 - 2) = 1.5 / 3.0 = 0.5.
+        # delta = (3000 - 100) * 0.5 = 1450.
+        # base_score = 3000 - 1450 = 1550.
+        # score = int(1550 * 2.0) = 3100.
+        session_hard = GameSession.objects.create(quiz=quiz, chosen_difficulty="HARD")
+        url_hard = reverse('session-attempts', kwargs={'session_id': session_hard.id})
+        data_hard = {
+            "question_id": question.id,
+            "answer_text": "Rock Song 0",
+            "time_taken_seconds": 3.5
+        }
+        response_hard = self.client.post(url_hard, data_hard, format="json")
+        self.assertEqual(response_hard.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response_hard.data["is_correct"], True)
+        self.assertEqual(response_hard.data["points_awarded"], 3100)
+
 
 class GenreClassificationTests(APITestCase):
     def test_get_main_category_name(self):

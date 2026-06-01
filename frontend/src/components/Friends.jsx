@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, User, Trophy, Flame, Medal, Target, BarChart2, Zap, Music, Crown } from 'lucide-react';
+import { User, Trophy, Flame, Medal, Target, BarChart2, Zap, Music, Crown } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export default function Friends() {
+    const { showToast } = useToast();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -109,7 +110,9 @@ export default function Friends() {
 
                 setUsers(mappedUsers);
             } catch (err) {
-                setError(err.message);
+                const msg = err.message || 'Nie udało się załadować rankingu.';
+                setError(msg);
+                showToast(msg, 'error');
             } finally {
                 setLoading(false);
             }
@@ -153,17 +156,8 @@ export default function Friends() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans p-4 sm:p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
-            <div className="w-full max-w-5xl flex justify-start mb-4 sm:mb-8 z-10">
-                <Link
-                    to="/"
-                    className="flex items-center gap-3 text-green-500 hover:text-green-400 hover:-translate-x-2 transition-all font-bold uppercase tracking-widest"
-                >
-                    <ArrowLeft size={28} /> Powrót
-                </Link>
-            </div>
-
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10 text-center">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex flex-col items-center">
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-4 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic text-center">
                 Ranking Graczy
             </h1>
             <p className="text-gray-400 uppercase tracking-widest font-bold mb-6 sm:mb-10 text-xs sm:text-sm text-center">Rywalizuj z najlepszymi w quizach muzycznych</p>

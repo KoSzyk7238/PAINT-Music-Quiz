@@ -1,0 +1,7 @@
+# Tytuł quizu<TAB>URL playlisty Apple Music
+# Przykładowe playlisty seedowane przy pierwszym uruchomieniu (pusta baza).
+
+Quebonafide	https://music.apple.com/pl/playlist/quebonafide/pl.u-4Joma4GsJExZ9D6
+Taco Hemingway	https://music.apple.com/pl/playlist/taco-hemingway/pl.u-qxylEelT3avRbWA
+Polskie lata 90.	https://music.apple.com/pl/playlist/polskie-lata-90/pl.u-pMyl1pbHWV1ZPqD
+Rock	https://music.apple.com/pl/playlist/best-rock-songs-of-all-time/pl.u-55D6Zq6u6KdDayb

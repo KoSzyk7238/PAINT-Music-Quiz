@@ -1,8 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { X } from 'lucide-react';
 import useDialogFocus from '../hooks/useDialogFocus';
-
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 export default function AuthModal({ activeModal, setActiveModal, guestSessionId }) {
+    const { refreshUser } = useAuth();
+    const { showToast } = useToast();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -46,11 +49,15 @@ export default function AuthModal({ activeModal, setActiveModal, guestSessionId 
                 setError(data.error || 'Wystąpił błąd');
             } else {
                 closeModal();
-                // Optionally trigger a re-render or context update to fetch user profile
-                window.location.reload();
+                await refreshUser();
+                showToast(
+                    activeModal === 'login' ? 'Zalogowano pomyślnie!' : 'Konto utworzone — witaj!',
+                    'success'
+                );
             }
         } catch (err) {
             setError('Błąd połączenia z serwerem');
+            showToast('Błąd połączenia z serwerem', 'error');
         } finally {
             setLoading(false);
         }

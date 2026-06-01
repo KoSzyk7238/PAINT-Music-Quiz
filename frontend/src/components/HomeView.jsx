@@ -12,7 +12,7 @@ export default function HomeView({
     quizzes,
     isLoading,
     startSession,
-    genres = []
+    genres = [],
 }) {
     const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
     const [isDragging, setIsDragging] = React.useState(false);

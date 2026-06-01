@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Flame, Trophy, Target, Zap, Music, Crown } from 'lucide-react';
+import { Flame, Trophy, Target, Zap, Music, Crown } from 'lucide-react';
 import AuthModal from './AuthModal';
+import { useToast } from '../context/ToastContext';
 
 export default function Stats() {
+    const { showToast } = useToast();
     const [statsData, setStatsData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -20,6 +21,7 @@ export default function Stats() {
                 setStatsData(data);
             } catch (err) {
                 setError(err.message);
+                showToast(err.message, 'error');
             } finally {
                 setLoading(false);
             }
@@ -30,7 +32,7 @@ export default function Stats() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black text-white font-sans flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center py-24">
                 <span className="text-2xl font-bold">Ładowanie statystyk...</span>
             </div>
         );
@@ -38,18 +40,8 @@ export default function Stats() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-black text-white font-sans flex flex-col items-center justify-center p-6 relative overflow-hidden">
-                {/* Back button */}
-                <div className="w-full max-w-md flex justify-start mb-8 z-10">
-                    <Link
-                        to="/"
-                        className="flex items-center gap-3 text-green-500 hover:text-green-400 hover:-translate-x-2 transition-all font-bold uppercase tracking-widest"
-                    >
-                        <ArrowLeft size={28} /> Powrót
-                    </Link>
-                </div>
-
-                <div className="bg-gray-900/60 border border-white/10 p-10 rounded-[32px] w-full max-w-md flex flex-col items-center text-center shadow-[0_0_50px_rgba(34,197,94,0.1)] backdrop-blur-md z-10 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            <div className="flex flex-col items-center justify-center p-6 py-12">
+                <div className="bg-gray-900/60 border border-white/10 p-10 rounded-[32px] w-full max-w-md flex flex-col items-center text-center shadow-[0_0_50px_rgba(34,197,94,0.1)] backdrop-blur-md animate-in fade-in slide-in-from-bottom-6 duration-500">
                     <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mb-6 border border-green-500/30">
                         <Crown className="text-green-500" size={40} />
                     </div>
@@ -136,22 +128,13 @@ export default function Stats() {
 
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans p-4 sm:p-10 flex flex-col items-center relative overflow-y-auto scrollbar-thin">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex flex-col items-center">
 
-            <div className="w-full max-w-5xl flex justify-start mb-4 sm:mb-8 z-10">
-                <Link
-                    to="/"
-                    className="flex items-center gap-3 text-green-500 hover:text-green-400 hover:-translate-x-2 transition-all font-bold uppercase tracking-widest"
-                >
-                    <ArrowLeft size={28} /> Powrót
-                </Link>
-            </div>
-
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-6 sm:mb-12 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic z-10 text-center">
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-6 sm:mb-12 bg-gradient-to-b from-green-300 via-green-500 to-green-700 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] uppercase italic text-center">
                 Statystyki
             </h1>
 
-            <div className="w-full max-w-5xl flex flex-col gap-10 z-10">
+            <div className="w-full flex flex-col gap-10">
 
                 {/* --- SEKCJA: OGÓLNE STATYSTYKI --- */}
                 <div className="bg-gray-900/40 p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md">

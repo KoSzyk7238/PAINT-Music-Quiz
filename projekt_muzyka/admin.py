@@ -120,16 +120,8 @@ class QuizAdmin(ImportExportModelAdmin):
     def import_apple_playlist(self, request):
         from django.shortcuts import render, redirect
         from django.contrib import messages
-        from django.db import transaction
-        from django.utils.text import slugify
-        from django.core.files.base import ContentFile
-        from .apple_music import (
-            extract_track_ids_from_playlist_url,
-            fetch_multiple_apple_music_metadata,
-            extract_playlist_name_and_desc,
-            fetch_playlist_cover_image,
-        )
-        import random
+
+        from .playlist_import import import_quiz_from_playlist
 
         quizzes = Quiz.objects.all().order_by('title')
         context = self.admin_site.each_context(request)
@@ -160,216 +152,53 @@ class QuizAdmin(ImportExportModelAdmin):
                 except ValueError:
                     pass
 
+            form_context = {
+                "playlist_url": playlist_url,
+                "title": custom_title,
+                "description": custom_description,
+                "difficulty": difficulty,
+                "num_questions_to_ask": num_questions_to_ask,
+                "time_limit": time_limit,
+                "selected_quiz_id": selected_quiz_id,
+            }
+
             if not playlist_url:
                 messages.error(request, "Adres URL playlisty jest wymagany.")
-                context.update({
-                    "playlist_url": playlist_url,
-                    "title": custom_title,
-                    "description": custom_description,
-                    "difficulty": difficulty,
-                    "num_questions_to_ask": num_questions_to_ask,
-                    "time_limit": time_limit,
-                    "selected_quiz_id": selected_quiz_id,
-                })
+                context.update(form_context)
                 return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
 
-            # Extract track IDs
-            track_ids = extract_track_ids_from_playlist_url(playlist_url)
-            if not track_ids:
-                context.update({
-                    "error": "Nie znaleziono żadnych utworów na podanej playliście. Upewnij się, że jest ona publiczna i poprawna.",
-                    "playlist_url": playlist_url,
-                    "title": custom_title,
-                    "description": custom_description,
-                    "difficulty": difficulty,
-                    "num_questions_to_ask": num_questions_to_ask,
-                    "time_limit": time_limit,
-                    "selected_quiz_id": selected_quiz_id,
-                })
+            title = custom_title.strip() if custom_title else None
+            description = custom_description.strip() if custom_description else None
+
+            result = import_quiz_from_playlist(
+                playlist_url,
+                title=title,
+                description=description,
+                quiz_id=selected_quiz_id,
+                difficulty=difficulty,
+                num_questions_to_ask=num_questions_to_ask,
+                time_limit=time_limit,
+            )
+
+            if not result.success:
+                context.update({**form_context, "error": result.error, "title": title, "description": description})
                 return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
 
-            # Fetch metadata for the playlist name/description if not provided
-            playlist_name, playlist_desc = extract_playlist_name_and_desc(playlist_url)
-            title = custom_title.strip() if custom_title else playlist_name
-            description = custom_description.strip() if custom_description else playlist_desc
-
-            # Fetch track metadata in bulk
-            metadata_dict = fetch_multiple_apple_music_metadata(track_ids)
-            if not metadata_dict:
-                context.update({
-                    "error": "Nie udało się pobrać szczegółowych danych utworów z iTunes API.",
-                    "playlist_url": playlist_url,
-                    "title": title,
-                    "description": description,
-                    "difficulty": difficulty,
-                    "num_questions_to_ask": num_questions_to_ask,
-                    "time_limit": time_limit,
-                    "selected_quiz_id": selected_quiz_id,
-                })
-                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
-
-            # Fetch cover image
-            cover_data = fetch_playlist_cover_image(playlist_url)
-
-            # Database creation in a transaction
-            try:
-                existing_quiz = None
-                if selected_quiz_id:
-                    try:
-                        existing_quiz = Quiz.objects.get(id=selected_quiz_id)
-                    except Quiz.DoesNotExist:
-                        messages.error(request, "Wybrany quiz nie istnieje.")
-                        context.update({
-                            "playlist_url": playlist_url,
-                            "title": title,
-                            "description": description,
-                            "difficulty": difficulty,
-                            "num_questions_to_ask": num_questions_to_ask,
-                            "time_limit": time_limit,
-                            "selected_quiz_id": selected_quiz_id,
-                        })
-                        return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
-
-                with transaction.atomic():
-                    if existing_quiz:
-                        quiz = existing_quiz
-                        if not quiz.cover_image and cover_data:
-                            quiz.cover_image.save("cover.jpg", ContentFile(cover_data), save=True)
-                    else:
-                        # Create the Quiz
-                        quiz = Quiz.objects.create(
-                            title=title,
-                            description=description,
-                            difficulty=difficulty,
-                            num_questions_to_ask=num_questions_to_ask,
-                            time_limit=time_limit,
-                        )
-                        if cover_data:
-                            quiz.cover_image.save("cover.jpg", ContentFile(cover_data), save=True)
-
-                    first_genre = None
-                    songs_count = 0
-                    skipped_count = 0
-
-                    for tid in track_ids:
-                        metadata = metadata_dict.get(tid)
-                        if not metadata or not metadata.get("title") or not metadata.get("preview_url"):
-                            continue
-
-                        # Find or create Genre
-                        genre_name = metadata.get("genre") or "Miks"
-                        genre_slug = slugify(genre_name)
-                        genre, _ = Genre.objects.get_or_create(
-                            slug=genre_slug,
-                            defaults={"name": genre_name}
-                        )
-
-                        if not first_genre:
-                            first_genre = genre
-
-                        # Find or create Song
-                        song_title = metadata.get("title")
-                        artist = metadata.get("artist") or ""
-                        release_year = metadata.get("release_year")
-                        preview_url = metadata.get("preview_url")
-
-                        song, created = Song.objects.get_or_create(
-                            title=song_title,
-                            artist=artist,
-                            defaults={
-                                "genre": genre,
-                                "apple_raw_genre": genre_name,
-                                "release_year": release_year,
-                                "apple_snippet_url": preview_url,
-                            }
-                        )
-
-                        # Zabezpieczenie przed duplikatami piosenek w tym quizie
-                        if Question.objects.filter(quiz=quiz, song=song).exists():
-                            skipped_count += 1
-                            continue
-
-                        # Create the Question
-                        question = Question.objects.create(
-                            quiz=quiz,
-                            song=song,
-                            question_text=f"Zgadnij tytuł tej piosenki",
-                            time_limit=None,
-                            points=1,
-                            min_points=0,
-                        )
-
-                        # Create correct answers
-                        Answer.objects.create(
-                            question=question,
-                            answer_text=song.title,
-                            is_correct=True,
-                        )
-                        if song.artist:
-                            Answer.objects.create(
-                                question=question,
-                                answer_text=f"{song.title} - {song.artist}",
-                                is_correct=True,
-                            )
-
-                        # Create some incorrect answer suggestions
-                        distractors = []
-                        # 1. Grab other tracks from this playlist
-                        other_tracks = [m for k, m in metadata_dict.items() if k != tid and m.get("title")]
-                        if len(other_tracks) >= 3:
-                            picked_tracks = random.sample(other_tracks, 3)
-                            for pt in picked_tracks:
-                                text = f"{pt.get('title')} - {pt.get('artist')}" if pt.get('artist') else pt.get('title')
-                                distractors.append(text)
-                        
-                        # 2. Grab from DB songs if needed
-                        if len(distractors) < 3:
-                            db_songs = list(Song.objects.exclude(id=song.id)[:10])
-                            if len(db_songs) >= 3:
-                                picked_db = random.sample(db_songs, min(3 - len(distractors), len(db_songs)))
-                                for ds in picked_db:
-                                    text = f"{ds.title} - {ds.artist}" if ds.artist else ds.title
-                                    distractors.append(text)
-
-                        # 3. Fallbacks
-                        while len(distractors) < 3:
-                            distractors.append(f"Inny utwór {len(distractors) + 1}")
-
-                        for dist in distractors[:3]:
-                            Answer.objects.create(
-                                question=question,
-                                answer_text=dist,
-                                is_correct=False,
-                            )
-
-                        songs_count += 1
-
-                    # Set the genre of the quiz to the genre of the first song if not set
-                    if first_genre and (not existing_quiz or not quiz.genre):
-                        quiz.genre = first_genre
-                        quiz.save(update_fields=["genre"])
-
-                if existing_quiz:
-                    msg = f"Pomyślnie dodano piosenki do quizu '{quiz.title}'! Dodano {songs_count} nowych utworów."
-                    if skipped_count > 0:
-                        msg += f" (Pominięto {skipped_count} utworów, które już były w tym quizie)"
-                    messages.success(request, msg)
-                else:
-                    messages.success(request, f"Pomyślnie zaimportowano playlistę! Utworzono quiz '{quiz.title}' z {songs_count} pytaniami.")
-                return redirect("admin:projekt_muzyka_quiz_changelist")
-
-            except Exception as e:
-                messages.error(request, f"Wystąpił błąd podczas zapisywania w bazie danych: {str(e)}")
-                context.update({
-                    "playlist_url": playlist_url,
-                    "title": title,
-                    "description": description,
-                    "difficulty": difficulty,
-                    "num_questions_to_ask": num_questions_to_ask,
-                    "time_limit": time_limit,
-                    "selected_quiz_id": selected_quiz_id,
-                })
-                return render(request, "admin/projekt_muzyka/quiz/import_playlist.html", context)
+            quiz = result.quiz
+            if selected_quiz_id:
+                msg = (
+                    f"Pomyślnie dodano piosenki do quizu '{quiz.title}'! "
+                    f"Dodano {result.songs_added} nowych utworów."
+                )
+                if result.songs_skipped > 0:
+                    msg += f" (Pominięto {result.songs_skipped} utworów, które już były w tym quizie)"
+            else:
+                msg = (
+                    f"Pomyślnie zaimportowano playlistę! "
+                    f"Utworzono quiz '{quiz.title}' z {result.songs_added} pytaniami."
+                )
+            messages.success(request, msg)
+            return redirect("admin:projekt_muzyka_quiz_changelist")
 
         context.update({
             "num_questions_to_ask": 10,

@@ -3,13 +3,17 @@ import random
 
 # Adres bazowy API MusicBrainz
 MUSICBRAINZ_API_URL = "https://musicbrainz.org/ws/2/"
+MUSICBRAINZ_HEADERS = {
+    'Accept': 'application/json',
+    'User-Agent': 'PAINT-Music-Quiz/1.0 (https://github.com/PAINT-Music-Quiz)',
+}
 
-def search_artist(artist_name):
+def search_artist(artist_name, limit=10):
     """
     Wyszukuje artystów po nazwie w API MusicBrainz.
     """
-    headers = {'Accept': 'application/json'}
-    params = {'query': artist_name, 'fmt': 'json'}
+    headers = MUSICBRAINZ_HEADERS
+    params = {'query': artist_name, 'fmt': 'json', 'limit': limit}
     try:
         response = requests.get(f"{MUSICBRAINZ_API_URL}artist", params=params, headers=headers)
         response.raise_for_status()  # Rzuci wyjątkiem dla kodów błędów HTTP

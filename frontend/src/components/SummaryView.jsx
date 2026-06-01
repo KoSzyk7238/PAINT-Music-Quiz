@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
     Sparkles, 
     Trophy, 
@@ -12,21 +12,33 @@ import {
     Award, 
     ThumbsUp, 
     Frown, 
-    Music 
+    Music,
+    Share2,
+    RotateCcw,
+    ListMusic,
 } from 'lucide-react';
 import useDialogFocus from '../hooks/useDialogFocus';
+import { useToast } from '../context/ToastContext';
+import { shareSession } from '../utils/shareResult';
+import DetailedSummaryModal from './DetailedSummaryModal';
 
 export default function SummaryView({ 
     sessionSummary, 
+    sessionId,
     currentQuiz, 
     onFinish, 
+    onPlayAgain,
     isLoggedIn, 
     onLoginClick, 
     onRegisterClick,
     maxStreak,
     fastestCorrectTime,
-    totalTimeTaken
+    totalTimeTaken,
+    guestSessionPending = false,
 }) {
+    const { showToast } = useToast();
+    const [sharing, setSharing] = useState(false);
+    const [showDetails, setShowDetails] = useState(false);
     const summaryDialogRef = useDialogFocus(true, onFinish);
 
     useEffect(() => {
@@ -46,6 +58,32 @@ export default function SummaryView({
 
     const totalQuestions = currentQuiz?.questions?.length || sessionSummary.total_questions || 10;
     const correctRatio = Math.round((sessionSummary.correct_count / totalQuestions) * 100);
+
+    const handleShare = async () => {
+        setSharing(true);
+        try {
+            const result = await shareSession({
+                quizTitle: currentQuiz?.title,
+                quizId: currentQuiz?.id ?? sessionSummary.quiz,
+                score: sessionSummary.score,
+                correctCount: sessionSummary.correct_count,
+                totalQuestions,
+                accuracyPercent: correctRatio,
+                difficulty: sessionSummary.chosen_difficulty || currentQuiz?.difficulty,
+            });
+            if (result === 'shared') {
+                showToast('Udostępniono!', 'success');
+            } else if (result === 'copied') {
+                showToast('Wynik skopiowany do schowka!', 'success');
+            } else if (result === 'failed') {
+                showToast('Nie udało się udostępnić wyniku.', 'error');
+            }
+        } catch {
+            showToast('Nie udało się udostępnić wyniku.', 'error');
+        } finally {
+            setSharing(false);
+        }
+    };
 
     const getPerformanceBadge = (ratio) => {
         if (ratio === 100) {
@@ -213,7 +251,38 @@ export default function SummaryView({
                 </div>
 
                 {/* Actions / Encourage Block */}
-                <div className="w-full relative z-10 shrink-0">
+                <div className="w-full relative z-10 shrink-0 flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            onClick={handleShare}
+                            disabled={sharing}
+                            className="font-bold py-3 px-4 rounded-xl uppercase tracking-wider text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-2 border-2 border-gray-700 text-white hover:border-green-500 disabled:opacity-50 cursor-pointer"
+                        >
+                            <Share2 size={16} aria-hidden />
+                            Udostępnij
+                        </button>
+                        {onPlayAgain && (
+                            <button
+                                type="button"
+                                onClick={onPlayAgain}
+                                className="font-bold py-3 px-4 rounded-xl uppercase tracking-wider text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-2 border-2 border-purple-500/50 text-purple-300 hover:bg-purple-950/40 cursor-pointer"
+                            >
+                                <RotateCcw size={16} aria-hidden />
+                                Zagraj ponownie
+                            </button>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowDetails(true)}
+                        className="w-full font-bold py-3 px-4 rounded-xl uppercase tracking-wider text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-2 border-2 border-green-500/30 text-green-400 hover:border-green-500 hover:bg-green-500/10 cursor-pointer"
+                    >
+                        <ListMusic size={16} aria-hidden />
+                        Szczegółowe podsumowanie
+                    </button>
+
                     {isLoggedIn ? (
                         <button
                             type="button"
@@ -235,7 +304,10 @@ export default function SummaryView({
                                 <span className="text-xs font-black uppercase tracking-wider">Zapisz swój wynik!</span>
                             </div>
                             <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-md">
-                                Twój wynik to aż <span className="text-yellow-400 font-bold">{sessionSummary.score} pkt</span>! Zaloguj się lub utwórz konto, aby zapisać punkty i rywalizować w rankingu.
+                                Twój wynik to aż <span className="text-yellow-400 font-bold">{sessionSummary.score} pkt</span>!
+                                {guestSessionPending
+                                    ? ' Zaloguj się — wynik z tej sesji zostanie przypisany do Twojego konta.'
+                                    : ' Zaloguj się lub utwórz konto, aby zapisać punkty i rywalizować w rankingu.'}
                             </p>
                             
                             <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-1">
@@ -269,6 +341,14 @@ export default function SummaryView({
                     )}
                 </div>
             </div>
+            
+            {showDetails && (
+                <DetailedSummaryModal
+                    sessionId={sessionId}
+                    currentQuiz={currentQuiz}
+                    onClose={() => setShowDetails(false)}
+                />
+            )}
         </div>
     );
 }
