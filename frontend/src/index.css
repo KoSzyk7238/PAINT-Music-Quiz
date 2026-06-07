@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: black;
+  color: white;
+}
+
+*:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Custom Global Scrollbar for premium dark neon look */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030712; /* gray-950 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937; /* gray-800 */
+  border-radius: 9999px;
+  border: 2.5px solid #030712;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #22c55e; /* green-500 */
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #1f2937 #030712;
+}

@@ -1,0 +1,18 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block sidebar %}
+{{ block.super }}
+<div id="content-related" style="margin-top: 20px;">
+    <div class="module" id="backup-module">
+        <h2>Kopia zapasowa bazy</h2>
+        <ul style="padding-left: 15px; margin-top: 10px; list-style-type: none;">
+            <li style="margin-bottom: 8px;">
+                <a href="{% url 'admin:backup_manage' %}" class="changelink" style="font-weight: bold; color: #447e9b;">
+                    📂 Zarządzaj kopią (Eksport/Import)
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

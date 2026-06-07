@@ -1,0 +1,51 @@
+# =========================
+# Zmienne środowiskowe
+# =========================
+.env
+
+# =========================
+# Środowisko wirtualne Pythona (widoczne na image_776175.png)
+# =========================
+.venv/
+
+# =========================
+# Python / Django
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Lokalna baza danych używana w developmencie (widoczna na image_776176.png)
+db.sqlite3
+db.sqlite3-journal
+
+# Pliki wgrywane do projektu (widoczne media/song_audio/)
+media/
+
+# =========================
+# Node.js / React / Vite (wewnątrz projekt_muzyka)
+# =========================
+node_modules/
+projekt_muzyka/node_modules/
+dist/
+projekt_muzyka/dist/
+dist-ssr/
+
+# Logi npm
+npm-debug.log*
+
+# =========================
+# Docker i Baza Danych (MariaDB)
+# =========================
+# Foldery wolumenów dla bazy MariaDB (jeśli trzymasz dane lokalnie, dostosuj nazwę z docker-compose.yml)
+mariadb_data/
+mysql_data/
+db_data/
+
+# =========================
+# IDE i system operacyjny
+# =========================
+# Korzystasz ze środowiska JetBrains (widać po interfejsie i folderze Scratches and Consoles)
+.idea/
+.DS_Store
+Thumbs.db

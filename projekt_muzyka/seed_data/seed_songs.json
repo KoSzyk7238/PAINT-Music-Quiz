@@ -1,0 +1,175 @@
+{
+  "genres": [
+    {"name": "Pop", "slug": "pop"},
+    {"name": "Rock", "slug": "rock"},
+    {"name": "Hip Hop", "slug": "hip-hop"},
+    {"name": "Electronic", "slug": "electronic"},
+    {"name": "Jazz", "slug": "jazz"},
+    {"name": "Classical", "slug": "classical"},
+    {"name": "Indie", "slug": "indie"},
+    {"name": "Rnb", "slug": "rnb"},
+    {"name": "Folk", "slug": "folk"}
+  ],
+  "songs": [
+    {
+      "title": "Sample Song 01",
+      "artist": "Sample Artist A",
+      "genre": "pop",
+      "apple_snippet_url": "https://example.com/audio/sample-01.mp3",
+      "release_year": 2019,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 02",
+      "artist": "Sample Artist B",
+      "genre": "pop",
+      "apple_snippet_url": "https://example.com/audio/sample-02.mp3",
+      "release_year": 2020,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 03",
+      "artist": "Sample Artist C",
+      "genre": "rock",
+      "apple_snippet_url": "https://example.com/audio/sample-03.mp3",
+      "release_year": 2017,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 04",
+      "artist": "Sample Artist D",
+      "genre": "rock",
+      "apple_snippet_url": "https://example.com/audio/sample-04.mp3",
+      "release_year": 2018,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 05",
+      "artist": "Sample Artist E",
+      "genre": "hip-hop",
+      "apple_snippet_url": "https://example.com/audio/sample-05.mp3",
+      "release_year": 2021,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 06",
+      "artist": "Sample Artist F",
+      "genre": "hip-hop",
+      "apple_snippet_url": "https://example.com/audio/sample-06.mp3",
+      "release_year": 2022,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 07",
+      "artist": "Sample Artist G",
+      "genre": "electronic",
+      "apple_snippet_url": "https://example.com/audio/sample-07.mp3",
+      "release_year": 2016,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 08",
+      "artist": "Sample Artist H",
+      "genre": "electronic",
+      "apple_snippet_url": "https://example.com/audio/sample-08.mp3",
+      "release_year": 2015,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 09",
+      "artist": "Sample Artist I",
+      "genre": "jazz",
+      "apple_snippet_url": "https://example.com/audio/sample-09.mp3",
+      "release_year": 2014,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 10",
+      "artist": "Sample Artist J",
+      "genre": "jazz",
+      "apple_snippet_url": "https://example.com/audio/sample-10.mp3",
+      "release_year": 2013,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 11",
+      "artist": "Sample Artist K",
+      "genre": "classical",
+      "apple_snippet_url": "https://example.com/audio/sample-11.mp3",
+      "release_year": 2012,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 12",
+      "artist": "Sample Artist L",
+      "genre": "classical",
+      "apple_snippet_url": "https://example.com/audio/sample-12.mp3",
+      "release_year": 2011,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 13",
+      "artist": "Sample Artist M",
+      "genre": "indie",
+      "apple_snippet_url": "https://example.com/audio/sample-13.mp3",
+      "release_year": 2023,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 14",
+      "artist": "Sample Artist N",
+      "genre": "indie",
+      "apple_snippet_url": "https://example.com/audio/sample-14.mp3",
+      "release_year": 2024,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 15",
+      "artist": "Sample Artist O",
+      "genre": "rnb",
+      "apple_snippet_url": "https://example.com/audio/sample-15.mp3",
+      "release_year": 2019,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 16",
+      "artist": "Sample Artist P",
+      "genre": "rnb",
+      "apple_snippet_url": "https://example.com/audio/sample-16.mp3",
+      "release_year": 2020,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 17",
+      "artist": "Sample Artist Q",
+      "genre": "folk",
+      "apple_snippet_url": "https://example.com/audio/sample-17.mp3",
+      "release_year": 2018,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 18",
+      "artist": "Sample Artist R",
+      "genre": "folk",
+      "apple_snippet_url": "https://example.com/audio/sample-18.mp3",
+      "release_year": 2017,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 19",
+      "artist": "Sample Artist S",
+      "genre": "pop",
+      "apple_snippet_url": "https://example.com/audio/sample-19.mp3",
+      "release_year": 2021,
+      "duration_seconds": 30
+    },
+    {
+      "title": "Sample Song 20",
+      "artist": "Sample Artist T",
+      "genre": "rock",
+      "apple_snippet_url": "https://example.com/audio/sample-20.mp3",
+      "release_year": 2016,
+      "duration_seconds": 30
+    }
+  ]
+}
